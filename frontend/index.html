@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RouteOpt - Multi-Stop Route Optimization</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <!-- FontAwesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+    <!-- Custom Style -->
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar Panel -->
+        <aside class="sidebar">
+            <header class="sidebar-header">
+                <div class="logo">
+                    <i class="fa-solid fa-route logo-icon"></i>
+                    <h1>Route<span>Opt</span></h1>
+                </div>
+                <div class="system-status">
+                    <span class="status-dot online" id="statusDot"></span>
+                    <span id="statusText">System Ready</span>
+                </div>
+            </header>
+
+            <!-- Navigation Tabs -->
+            <nav class="sidebar-nav">
+                <button class="nav-tab active" data-tab="dashboard">
+                    <i class="fa-solid fa-gauge"></i> Dashboard
+                </button>
+                <button class="nav-tab" data-tab="routes" id="routesTabBtn" disabled>
+                    <i class="fa-solid fa-truck-ramp-box"></i> Routes
+                </button>
+                <button class="nav-tab" data-tab="docs">
+                    <i class="fa-solid fa-circle-info"></i> Project Info
+                </button>
+            </nav>
+
+            <div class="sidebar-content">
+                <!-- Tab 1: Dashboard -->
+                <section class="tab-pane active" id="tab-dashboard">
+                    <!-- Vehicle Config -->
+                    <div class="card">
+                        <h3><i class="fa-solid fa-truck"></i> Vehicle Configurations</h3>
+                        <div class="form-group row">
+                            <div class="col">
+                                <label for="numVehicles">Vehicles</label>
+                                <input type="number" id="numVehicles" min="1" max="10" value="3">
+                            </div>
+                            <div class="col">
+                                <label for="vehicleCapacity">Capacity (units)</label>
+                                <input type="number" id="vehicleCapacity" min="1" max="100" value="15">
+                            </div>
+                        </div>
+                        <div class="custom-capacities-toggle">
+                            <label class="checkbox-container">
+                                <input type="checkbox" id="customCapacitiesCheck">
+                                <span class="checkmark"></span>
+                                Set custom capacities per vehicle
+                            </label>
+                        </div>
+                        <div class="form-group hidden" id="customCapacitiesGroup">
+                            <label for="customCapacitiesInput">Capacities (comma-separated)</label>
+                            <input type="text" id="customCapacitiesInput" placeholder="15, 20, 10" value="15, 15, 15">
+                        </div>
+                    </div>
+
+                    <!-- Stops Management -->
+                    <div class="card flex-grow">
+                        <div class="card-header-actions">
+                            <h3><i class="fa-solid fa-location-dot"></i> Delivery Locations</h3>
+                            <span class="badge" id="stopsCount">0 stops</span>
+                        </div>
+                        
+                        <div class="helper-text">
+                            <i class="fa-solid fa-circle-question"></i> Click the map to place locations. The first point is the <strong>Depot</strong>.
+                        </div>
+
+                        <!-- Locations List Container -->
+                        <div class="location-list" id="locationList">
+                            <div class="empty-list-state">
+                                <i class="fa-solid fa-map-location-dot"></i>
+                                <p>No locations added yet</p>
+                                <button class="btn btn-secondary btn-sm" id="loadSampleBtn">
+                                    <i class="fa-solid fa-wand-magic-sparkles"></i> Load Mumbai Sample Data
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Action Controls -->
+                    <div class="action-buttons">
+                        <button class="btn btn-primary" id="optimizeBtn" disabled>
+                            <i class="fa-solid fa-bolt"></i> Optimize Routes
+                        </button>
+                        <button class="btn btn-danger-outline" id="clearAllBtn">
+                            <i class="fa-solid fa-trash-can"></i> Clear All
+                        </button>
+                    </div>
+                </section>
+
+                <!-- Tab 2: Routes -->
+                <section class="tab-pane" id="tab-routes">
+                    <div class="results-summary">
+                        <h3>Optimization Results</h3>
+                        <div class="stats-grid">
+                            <div class="stat-box">
+                                <span class="stat-label">Total Distance</span>
+                                <span class="stat-value" id="resTotalDistance">-</span>
+                            </div>
+                            <div class="stat-box">
+                                <span class="stat-label">Est. Duration</span>
+                                <span class="stat-value" id="resTotalDuration">-</span>
+                            </div>
+                            <div class="stat-box">
+                                <span class="stat-label">Active Routes</span>
+                                <span class="stat-value" id="resActiveRoutes">-</span>
+                            </div>
+                            <div class="stat-box">
+                                <span class="stat-label">Routing Type</span>
+                                <span class="stat-value text-success" id="resRoutingType">-</span>
+                            </div>
+                        </div>
+                        
+                        <div class="simulation-card card mt-3">
+                            <div class="simulation-header">
+                                <h4><i class="fa-solid fa-play"></i> Delivery Simulator</h4>
+                                <span class="badge badge-pulse hidden" id="simStatus">Simulating</span>
+                            </div>
+                            <p class="helper-text">Animate the delivery trucks along the computed road routes.</p>
+                            <div class="sim-controls">
+                                <button class="btn btn-secondary btn-sm" id="startSimBtn">
+                                    <i class="fa-solid fa-circle-play"></i> Run Simulation
+                                </button>
+                                <button class="btn btn-secondary-outline btn-sm hidden" id="stopSimBtn">
+                                    <i class="fa-solid fa-circle-stop"></i> Stop
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Individual Routes List -->
+                    <div class="routes-container" id="routesContainer">
+                        <!-- Dynamic content goes here -->
+                    </div>
+                </section>
+
+                <!-- Tab 3: Project Info -->
+                <section class="tab-pane" id="tab-docs">
+                    <div class="docs-content">
+                        <h2>RouteOpt</h2>
+                        <p class="subtitle">Intelligent Multi-Stop Delivery Route Optimization System</p>
+                        
+                        <div class="divider"></div>
+
+                        <h3><i class="fa-solid fa-puzzle-piece"></i> How It Works</h3>
+                        <p>
+                            RouteOpt solves the <strong>Capacitated Vehicle Routing Problem (CVRP)</strong>, a complex NP-hard combinatorial optimization problem where a fleet of vehicles with capacity constraints must service a set of delivery demands from a central depot in the most cost-effective way.
+                        </p>
+                        
+                        <h4>1. OpenStreetMap Data Retrieval</h4>
+                        <p>
+                            When you input locations, the system sends coordinates to the <strong>OpenStreetMap Routing Machine (OSRM)</strong> Table API. OSRM calculates a real-world road-routing distance matrix and travel-duration matrix.
+                        </p>
+
+                        <h4>2. Google OR-Tools Engine</h4>
+                        <p>
+                            The distance matrix and stop demands are passed to <strong>Google OR-Tools</strong>. The solver uses advanced constraint programming heuristics (such as <em>Guided Local Search</em>) to find the globally optimal route paths in seconds, ensuring vehicle capacities are never exceeded.
+                        </p>
+
+                        <h4>3. Detailed Geometry Overlay</h4>
+                        <p>
+                            Once OR-Tools determines the node sequence for each vehicle, the backend queries the OSRM Route API to fetch the exact GeoJSON road path. The frontend then renders these colored lines matching street curves.
+                        </p>
+
+                        <div class="divider"></div>
+
+                        <h3><i class="fa-solid fa-diagram-project"></i> System Architecture</h3>
+                        <div class="architecture-diagram-container">
+                            <div class="arch-box client">
+                                <strong>Web Frontend (Client)</strong>
+                                <span>Leaflet.js Map | Outfit UI</span>
+                            </div>
+                            <div class="arch-arrow"><i class="fa-solid fa-arrows-up-down"></i></div>
+                            <div class="arch-box server">
+                                <strong>FastAPI Backend (Python)</strong>
+                                <span>API Router | JSON Schema Validations</span>
+                            </div>
+                            <div class="arch-arrow-double">
+                                <div><i class="fa-solid fa-arrow-left"></i></div>
+                                <div><i class="fa-solid fa-arrow-right"></i></div>
+                            </div>
+                            <div class="arch-row">
+                                <div class="arch-box db">
+                                    <strong>OSRM API</strong>
+                                    <span>OSM Road Matrices & Geometries</span>
+                                </div>
+                                <div class="arch-box engine">
+                                    <strong>Google OR-Tools</strong>
+                                    <span>CVRP Routing Engine</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="divider"></div>
+
+                        <h3><i class="fa-solid fa-square-root-variable"></i> CVRP Formulation</h3>
+                        <div class="math-box">
+                            <p><strong>Objective:</strong> Minimize Total Routing Cost</p>
+                            <code>Min ∑ c_ij * x_ijv</code>
+                            <p class="mt-2"><strong>Constraints:</strong></p>
+                            <ul>
+                                <li>Every customer is visited exactly once.</li>
+                                <li>Every vehicle route starts and ends at the Depot.</li>
+                                <li>Total demand of any route cannot exceed vehicle capacity: <code>∑ d_i * y_iv ≤ Q_v</code></li>
+                            </ul>
+                        </div>
+                    </div>
+                </section>
+            </div>
+        </aside>
+
+        <!-- Map Container -->
+        <main class="map-wrapper">
+            <div id="map"></div>
+
+            <!-- Map Floating Toolbar -->
+            <div class="map-toolbar">
+                <button class="toolbar-btn active" id="toolAddStop" title="Add Delivery Locations (Click on Map)">
+                    <i class="fa-solid fa-location-crosshairs"></i> Add Stops
+                </button>
+                <div class="toolbar-divider"></div>
+                <div class="map-metrics-bar hidden" id="mapMetricsBar">
+                    <span class="metric"><i class="fa-solid fa-route text-primary"></i> <span id="metricDist">-</span></span>
+                    <span class="metric"><i class="fa-solid fa-clock text-warning"></i> <span id="metricTime">-</span></span>
+                    <span class="metric"><i class="fa-solid fa-truck text-success"></i> <span id="metricVehicles">-</span></span>
+                </div>
+            </div>
+
+            <!-- Toast Notifications -->
+            <div class="toast-container" id="toastContainer"></div>
+        </main>
+    </div>
+
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+    <!-- Custom Application JS -->
+    <script src="app.js"></script>
+</body>
+</html>
