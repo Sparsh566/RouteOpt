@@ -1,0 +1,7 @@
+# RouteOpt backend dependencies
+fastapi
+uvicorn
+pydantic
+ortools
+requests
+pytest
