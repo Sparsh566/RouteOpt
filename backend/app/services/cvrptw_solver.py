@@ -3,7 +3,14 @@ Commercial Fleet CVRPTW Solver Service
 Formulates Capacitated Vehicle Routing Problem with Time Windows & Road Guidelines using Google OR-Tools.
 """
 
-from ortools.constraint_solver import pywrapcp, routing_enums_pb2
+try:
+    from ortools.constraint_solver import pywrapcp, routing_enums_pb2
+    ORTOOLS_AVAILABLE = True
+except (ImportError, Exception):
+    pywrapcp = None
+    routing_enums_pb2 = None
+    ORTOOLS_AVAILABLE = False
+
 from typing import List, Dict, Any, Optional
 import logging
 from backend.app.models.fleet_v2 import CommercialVehicleSpec, VehicleClass, DeliveryStop, DepotLocation
@@ -34,6 +41,17 @@ class CVRPTWSolver:
         self.depot_index = 0
 
     def solve(self) -> Optional[Dict[str, Any]]:
+        if not ORTOOLS_AVAILABLE:
+            logger.info("OR-Tools not available in environment. Running greedy CVRPTW solver fallback.")
+            return self._solve_greedy_fallback()
+
+        try:
+            return self._solve_ortools()
+        except Exception as e:
+            logger.warning(f"OR-Tools solver execution failed: {e}. Falling back to greedy CVRPTW.")
+            return self._solve_greedy_fallback()
+
+    def _solve_ortools(self) -> Optional[Dict[str, Any]]:
         manager = pywrapcp.RoutingIndexManager(
             self.num_nodes,
             self.num_vehicles,
@@ -203,6 +221,123 @@ class CVRPTWSolver:
                 "total_duration_s": route_dur,
                 "utilized": len(schedule) > 2
             })
+
+        return {
+            "routes": routes,
+            "dropped_stops": dropped_stops
+        }
+
+    def _solve_greedy_fallback(self) -> Dict[str, Any]:
+        """
+        Greedy CVRPTW solver fallback if OR-Tools is unavailable on serverless environments.
+        Assigns stops to vehicles based on capacity constraints and nearest available drop.
+        """
+        unassigned = list(range(1, self.num_nodes))
+        routes = []
+        dropped_stops = []
+
+        for vehicle in self.fleet:
+            if not unassigned:
+                # Idle vehicle
+                routes.append({
+                    "vehicle_id": vehicle.vehicle_id,
+                    "vehicle_name": vehicle.name,
+                    "vehicle_class": vehicle.vehicle_class,
+                    "color_hex": vehicle.color_hex,
+                    "schedule": [
+                        {"node_index": 0, "arrival_time_sec": 0.0, "load_kg": 0.0},
+                        {"node_index": 0, "arrival_time_sec": 0.0, "load_kg": 0.0}
+                    ],
+                    "total_distance_m": 0.0,
+                    "total_duration_s": 0.0,
+                    "utilized": False
+                })
+                continue
+
+            current_node = 0
+            current_time = 0.0
+            current_load = 0.0
+            schedule = [{"node_index": 0, "arrival_time_sec": 0.0, "load_kg": 0.0}]
+            total_dist = 0.0
+            total_dur = 0.0
+            speed_penalty = 1.30 if vehicle.vehicle_class == VehicleClass.FREIGHT_TRUCK else 1.0
+
+            while unassigned:
+                # Find nearest feasible unassigned stop
+                best_stop_idx = None
+                best_dist = float("inf")
+
+                for candidate_node in unassigned:
+                    stop_data = self.stops[candidate_node - 1]
+                    # Check capacity
+                    if current_load + stop_data.demand_kg > vehicle.payload_capacity_kg:
+                        continue
+                    # Check truck ban
+                    if (
+                        self.enforce_guidelines
+                        and vehicle.vehicle_class == VehicleClass.FREIGHT_TRUCK
+                        and stop_data.is_in_restricted_urban_core
+                    ):
+                        continue
+
+                    d = self.distance_matrix[current_node][candidate_node]
+                    if d < best_dist:
+                        best_dist = d
+                        best_stop_idx = candidate_node
+
+                if best_stop_idx is None:
+                    # No more stops fit this vehicle's capacity or restrictions
+                    break
+
+                # Service best_stop_idx
+                unassigned.remove(best_stop_idx)
+                stop_data = self.stops[best_stop_idx - 1]
+                leg_dist = self.distance_matrix[current_node][best_stop_idx]
+                leg_dur = (self.duration_matrix[current_node][best_stop_idx] * speed_penalty)
+                current_time += leg_dur
+
+                # Apply time window wait if arriving early
+                if current_time < stop_data.time_window_start_sec:
+                    current_time = float(stop_data.time_window_start_sec)
+
+                current_load += stop_data.demand_kg
+                schedule.append({
+                    "node_index": best_stop_idx,
+                    "arrival_time_sec": current_time,
+                    "load_kg": current_load
+                })
+
+                current_time += float(stop_data.service_duration_sec)
+                total_dist += leg_dist
+                total_dur += leg_dur + float(stop_data.service_duration_sec)
+                current_node = best_stop_idx
+
+            # Return to depot
+            return_dist = self.distance_matrix[current_node][0]
+            return_dur = self.duration_matrix[current_node][0] * speed_penalty
+            current_time += return_dur
+            total_dist += return_dist
+            total_dur += return_dur
+
+            schedule.append({
+                "node_index": 0,
+                "arrival_time_sec": current_time,
+                "load_kg": 0.0
+            })
+
+            routes.append({
+                "vehicle_id": vehicle.vehicle_id,
+                "vehicle_name": vehicle.name,
+                "vehicle_class": vehicle.vehicle_class,
+                "color_hex": vehicle.color_hex,
+                "schedule": schedule,
+                "total_distance_m": total_dist,
+                "total_duration_s": total_dur,
+                "utilized": len(schedule) > 2
+            })
+
+        for remaining_node in unassigned:
+            dropped_stops.append(self.stops[remaining_node - 1].stop_id)
 
         return {
             "routes": routes,
