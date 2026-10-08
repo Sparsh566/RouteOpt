@@ -117,11 +117,10 @@ function initMap() {
 
     L.control.zoom({ position: "bottomright" }).addTo(state.map);
 
-    // High-contrast clean basemap
-    L.tileLayer("https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png", {
-        attribution: '&copy; OpenStreetMap contributors &copy; CARTO',
-        maxZoom: 19,
-        subdomains: "abcd"
+    // Completely free OpenStreetMap tile server (no API key required)
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+        maxZoom: 19
     }).addTo(state.map);
 
     state.markersLayer = L.layerGroup().addTo(state.map);
