@@ -31,6 +31,9 @@ ENV/
 env/
 .venv/
 
+# Environment Variables
+.env
+
 # Testing
 .pytest_cache/
 .coverage
@@ -39,3 +42,9 @@ htmlcov/
 # OS-specific files
 .DS_Store
 Thumbs.db
+
+# Project Reference Archives & Local Research Assets
+*.zip
+Project in ide/
+Reference paper/
+Research paper/
