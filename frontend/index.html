@@ -121,7 +121,7 @@
                             <span class="card-title"><i class="fa-solid fa-location-dot"></i> Delivery Drops & Warehouse</span>
                             <span class="badge" id="stopsCount">0 stops</span>
                         </div>
-                        <p class="field-hint">The first point is the warehouse hub. You can click anywhere on the map to add stops.</p>
+                        <p class="field-hint">Point 1 is the warehouse hub. Click on the map to add more drop points.</p>
 
                         <div class="stop-list-container" id="locationList">
                             <div class="empty-state">
@@ -140,6 +140,9 @@
                             <i class="fa-solid fa-check"></i>
                             <span id="optimizeBtnText">Calculate Optimal Routes</span>
                         </button>
+                        <button class="btn btn-secondary" id="directSimBtn" title="Calculate and animate driver route directly">
+                            <i class="fa-solid fa-play"></i> Start Simulation
+                        </button>
                         <button class="btn btn-outline" id="clearBtn" title="Reset all stops">
                             <i class="fa-solid fa-rotate-left"></i> Reset
                         </button>
@@ -148,12 +151,29 @@
 
                 <!-- Tab 2: Route Simulation -->
                 <section class="tab-pane" id="tab-simulation">
-                    <div class="card">
+                    
+                    <!-- Custom Situation Input Card -->
+                    <div class="card custom-scenario-box">
                         <div class="card-header">
-                            <span class="card-title"><i class="fa-solid fa-code-compare"></i> Road Disruption Simulator</span>
+                            <span class="card-title"><i class="fa-solid fa-pen-to-square"></i> Custom Problem / Situation</span>
                         </div>
-                        <p class="field-hint">Test unexpected road situations before dispatch to see cost, delay, and police fine risks.</p>
+                        <p class="field-hint">Type any real-world delay, breakdown, customer change, or road rule question (or click an example below):</p>
+                        
+                        <div class="custom-prompt-chips" style="display:flex; flex-wrap:wrap; gap:6px; margin-bottom:8px;">
+                            <button type="button" class="chip-btn" data-text="Truck delayed at Dadar market for 45 mins due to rain. Will it miss the 5:00 PM entry ban, or should we shift parcels into a Tata Ace van?">45m Rain Delay at Dadar</button>
+                            <button type="button" class="chip-btn" data-text="Overhead flyover height barrier is 2.5 meters. Can our Tata 407 truck cross or will it hit the steel gantry?">Flyover 2.5m Barrier Detour</button>
+                            <button type="button" class="chip-btn" data-text="Mulund checkpost has surprise police inspection. Expected delay is 90 mins with 1 truck and 2 vans. What is our revised delivery timeline?">Police Inspection at Mulund</button>
+                            <button type="button" class="chip-btn" data-text="Customer at BKC requested delivery after 3:00 PM only. Can Tata Ace van reschedule without missing warehouse return time?">BKC Late Delivery Window</button>
+                        </div>
+
+                        <textarea id="customSituationInput" rows="3" class="custom-textarea" placeholder="Example: Truck delayed at Dadar market for 45 mins due to rain. Will it miss the 5:00 PM entry ban, or should we shift parcels into a Tata Ace van?"></textarea>
+                        
+                        <button class="btn btn-primary btn-block" id="runCustomSimulationBtn" style="margin-top: 8px;">
+                            <i class="fa-solid fa-bolt"></i> Analyze Custom Problem with AI
+                        </button>
                     </div>
+
+                    <div class="section-divider-label">OR TEST A PRESET ROAD SITUATION</div>
 
                     <div class="scenario-list">
                         <div class="scenario-card active" data-scenario="BORDER_ENTRY_DELAY">
@@ -190,8 +210,8 @@
                     </div>
 
                     <div class="sim-actions">
-                        <button class="btn btn-primary btn-block" id="runSimulationBtn">
-                            <i class="fa-solid fa-play"></i> Run Simulation Analysis
+                        <button class="btn btn-secondary btn-block" id="runSimulationBtn">
+                            <i class="fa-solid fa-play"></i> Run Selected Preset Scenario
                         </button>
                     </div>
 
@@ -228,6 +248,12 @@
                             <div class="guidance-title"><i class="fa-solid fa-arrow-right"></i> What To Do:</div>
                             <p id="simActionText">Hold at outer hub or shift cargo to delivery vans.</p>
                         </div>
+
+                        <div style="margin-top: 12px;">
+                            <button class="btn btn-primary btn-block" id="simWatchDriverBtn">
+                                <i class="fa-solid fa-play"></i> Watch Driver Movement on Map
+                            </button>
+                        </div>
                     </div>
                 </section>
 
@@ -254,6 +280,12 @@
                                 <span class="cell-label">Active Vehicles</span>
                                 <strong class="cell-value" id="summaryVehicles">0</strong>
                             </div>
+                        </div>
+
+                        <div style="margin-top: 12px;">
+                            <button class="btn btn-primary btn-block" id="itineraryPlayAnimBtn">
+                                <i class="fa-solid fa-play"></i> Start Driver Route Animation on Map
+                            </button>
                         </div>
                     </div>
 
@@ -302,6 +334,22 @@
                 <div class="bar-item"><i class="fa-solid fa-road text-primary"></i> <span id="metricDist">-</span></div>
                 <div class="bar-item"><i class="fa-solid fa-clock text-amber"></i> <span id="metricTime">-</span></div>
                 <div class="bar-item"><i class="fa-solid fa-truck text-success"></i> <span id="metricVehicles">-</span></div>
+            </div>
+
+            <!-- Map Floating Driver Animation Toolbar -->
+            <div class="map-anim-bar hidden" id="mapAnimBar">
+                <button class="btn-anim-ctrl" id="startMapAnimBtn" title="Start Driver Route Animation">
+                    <i class="fa-solid fa-play"></i> Start Driver Simulation
+                </button>
+                <button class="btn-anim-ctrl btn-anim-stop hidden" id="stopMapAnimBtn" title="Stop Driver Movement Simulation">
+                    <i class="fa-solid fa-pause"></i> Pause Simulation
+                </button>
+                <div class="anim-speed-selector">
+                    <button class="btn-speed active" data-speed="1">1x</button>
+                    <button class="btn-speed" data-speed="2">2x</button>
+                    <button class="btn-speed" data-speed="4">4x</button>
+                </div>
+                <span class="anim-status-indicator" id="animStatusIndicator">Driver Status: Ready</span>
             </div>
 
             <!-- Notification Toast Container -->

@@ -1,6 +1,9 @@
 /**
  * RouteOpt - Commercial Fleet Routing & Dispatch System
- * Driver-friendly UI logic without emojis, em dashes, or unnecessary animations.
+ * Features:
+ * 1. Multi-vehicle CVRPTW with Van and Truck road rules.
+ * 2. AI What-If Scenario simulation with preset and custom problem analysis.
+ * 3. Live Driver Route Animation on map.
  */
 
 // Application State
@@ -16,7 +19,12 @@ const state = {
     selectedScenario: "BORDER_ENTRY_DELAY",
     map: null,
     markersLayer: null,
-    routesLayer: null
+    routesLayer: null,
+    
+    // Animation tracking
+    animationMarkers: [],
+    animationIntervals: [],
+    isAnimating: false
 };
 
 // Preset Mumbai Transport Dataset
@@ -117,7 +125,7 @@ function initMap() {
 
     L.control.zoom({ position: "bottomright" }).addTo(state.map);
 
-    // Completely free OpenStreetMap tile server (no API key required)
+    // Completely free OpenStreetMap tile server
     L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
         attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
         maxZoom: 19
@@ -183,7 +191,7 @@ function initEventListeners() {
     // Optimize Button
     document.getElementById("optimizeBtn").addEventListener("click", optimizeRoutes);
 
-    // Scenario Selection
+    // Preset Scenario Selection
     document.querySelectorAll(".scenario-card").forEach(card => {
         card.addEventListener("click", () => {
             document.querySelectorAll(".scenario-card").forEach(c => {
@@ -196,8 +204,69 @@ function initEventListeners() {
         });
     });
 
-    // Run Simulation
-    document.getElementById("runSimulationBtn").addEventListener("click", runAiSimulation);
+    // Custom Situation Suggestion Chips
+    document.querySelectorAll(".chip-btn").forEach(chip => {
+        chip.addEventListener("click", () => {
+            const textarea = document.getElementById("customSituationInput");
+            textarea.value = chip.dataset.text;
+            textarea.focus();
+            showToast("Loaded sample problem into textarea", "info");
+        });
+    });
+
+    // Run Preset Simulation
+    document.getElementById("runSimulationBtn").addEventListener("click", () => runSimulationRequest(null));
+
+    // Run Custom User Problem Simulation
+    document.getElementById("runCustomSimulationBtn").addEventListener("click", () => {
+        const customText = document.getElementById("customSituationInput").value.trim();
+        if (!customText) {
+            showToast("Please type a situation or road problem to analyze.", "warning");
+            document.getElementById("customSituationInput").focus();
+            return;
+        }
+        runSimulationRequest(customText);
+    });
+
+    // Direct Start Simulation Button in Dispatch tab
+    document.getElementById("directSimBtn")?.addEventListener("click", async () => {
+        if (!state.currentRoutes || state.currentRoutes.length === 0) {
+            await optimizeRoutes();
+        }
+        startRouteAnimation();
+    });
+
+    // Watch Driver Movement button inside Simulation Result card
+    document.getElementById("simWatchDriverBtn")?.addEventListener("click", async () => {
+        if (!state.currentRoutes || state.currentRoutes.length === 0) {
+            await optimizeRoutes();
+        }
+        startRouteAnimation();
+        showToast("Tracking active vehicles on map.", "info");
+    });
+
+    // Animation Controls
+    document.getElementById("startMapAnimBtn").addEventListener("click", startRouteAnimation);
+    document.getElementById("stopMapAnimBtn").addEventListener("click", stopRouteAnimation);
+    document.getElementById("itineraryPlayAnimBtn")?.addEventListener("click", async () => {
+        if (!state.currentRoutes || state.currentRoutes.length === 0) {
+            await optimizeRoutes();
+        }
+        startRouteAnimation();
+        showToast("Switched to map view. Driver route animation started.", "info");
+    });
+
+    // Speed Controls (1x, 2x, 4x)
+    document.querySelectorAll(".btn-speed").forEach(btn => {
+        btn.addEventListener("click", () => {
+            document.querySelectorAll(".btn-speed").forEach(b => b.classList.remove("active"));
+            btn.classList.add("active");
+            state.animationSpeed = parseInt(btn.dataset.speed, 10) || 1;
+            if (state.isAnimating) {
+                startRouteAnimation();
+            }
+        });
+    });
 }
 
 // Update Clock Display and Traffic Regulation Status
@@ -242,6 +311,7 @@ function updateFleetSummary() {
 
 // Load Mumbai Logistics Preset
 function loadMumbaiPreset() {
+    stopRouteAnimation();
     state.depot = { ...MUMBAI_PRESET.depot };
     state.stops = JSON.parse(JSON.stringify(MUMBAI_PRESET.stops));
     renderLocationsList();
@@ -252,6 +322,7 @@ function loadMumbaiPreset() {
 
 // Clear All Stops
 function clearAll() {
+    stopRouteAnimation();
     state.depot = null;
     state.stops = [];
     state.currentRoutes = [];
@@ -261,6 +332,7 @@ function clearAll() {
     updateFleetSummary();
     document.getElementById("itineraryTabBtn").disabled = true;
     document.getElementById("mapMetricsBar").classList.add("hidden");
+    document.getElementById("mapAnimBar").classList.add("hidden");
     showToast("Reset all locations", "warning");
 }
 
@@ -395,7 +467,7 @@ function buildFleetSpec() {
             payload_capacity_kg: 1200.0,
             fixed_dispatch_cost: 250.0,
             running_cost_per_km: 12.0,
-            color_hex: "#0284c7" // Solid clean blue
+            color_hex: "#0284c7" // Solid blue
         });
     }
     for (let i = 0; i < state.fleet.trucks; i++) {
@@ -408,14 +480,15 @@ function buildFleetSpec() {
             payload_capacity_kg: 4500.0,
             fixed_dispatch_cost: 600.0,
             running_cost_per_km: 22.0,
-            color_hex: "#d97706" // Solid clean amber
+            color_hex: "#d97706" // Solid amber
         });
     }
     return fleet;
 }
 
 // Calculate Optimal Routes
-async function optimizeRoutes() {
+async function optimizeRoutes(autoSwitchTab = true) {
+    stopRouteAnimation();
     const btn = document.getElementById("optimizeBtn");
     const btnText = document.getElementById("optimizeBtnText");
     btn.disabled = true;
@@ -445,7 +518,7 @@ async function optimizeRoutes() {
         }
 
         const data = await res.json();
-        handleOptimizationSuccess(data);
+        handleOptimizationSuccess(data, autoSwitchTab);
     } catch (err) {
         showToast(`Error: ${err.message}`, "error");
     } finally {
@@ -455,7 +528,7 @@ async function optimizeRoutes() {
 }
 
 // Handle Optimization Success
-function handleOptimizationSuccess(data) {
+function handleOptimizationSuccess(data, autoSwitchTab = true) {
     state.currentRoutes = data.routes;
     state.routesLayer.clearLayers();
 
@@ -480,17 +553,22 @@ function handleOptimizationSuccess(data) {
         state.map.fitBounds(allBounds, { padding: [40, 40] });
     }
 
+    // Show Metrics Bar and Animation Toolbar
     const metricsBar = document.getElementById("mapMetricsBar");
     metricsBar.classList.remove("hidden");
     document.getElementById("metricDist").textContent = `${data.total_fleet_distance_km} km`;
     document.getElementById("metricTime").textContent = `${data.total_fleet_duration_hours} hrs`;
     document.getElementById("metricVehicles").textContent = `${data.routes.length} Active Vehicles`;
 
+    document.getElementById("mapAnimBar").classList.remove("hidden");
+
     renderItineraryTab(data);
 
     const itineraryTabBtn = document.getElementById("itineraryTabBtn");
     itineraryTabBtn.disabled = false;
-    itineraryTabBtn.click();
+    if (autoSwitchTab) {
+        itineraryTabBtn.click();
+    }
 
     showToast(`Optimal routes calculated in ${data.solve_duration_ms} ms`, "success");
 }
@@ -541,16 +619,119 @@ function renderItineraryTab(data) {
     container.innerHTML = html;
 }
 
-// Run Scenario Simulation
-async function runAiSimulation() {
-    const btn = document.getElementById("runSimulationBtn");
+// LIVE DRIVER ROUTE ANIMATION ON MAP
+async function startRouteAnimation() {
+    stopRouteAnimation();
+
+    if (!state.currentRoutes || state.currentRoutes.length === 0) {
+        showToast("Calculating optimal routes first...", "info");
+        await optimizeRoutes(false);
+        if (!state.currentRoutes || state.currentRoutes.length === 0) {
+            showToast("Please add stops and ensure vehicles are configured.", "warning");
+            return;
+        }
+    }
+
+    state.isAnimating = true;
+    document.getElementById("mapAnimBar").classList.remove("hidden");
+    document.getElementById("startMapAnimBtn").classList.add("hidden");
+    document.getElementById("stopMapAnimBtn").classList.remove("hidden");
+    
+    const speedMultiplier = state.animationSpeed || 1;
+    document.getElementById("animStatusIndicator").textContent = `Driver Status: Moving (${state.currentRoutes.length} active vehicles @ ${speedMultiplier}x speed)`;
+
+    state.currentRoutes.forEach((route) => {
+        if (!route.route_geometry || !route.route_geometry.coordinates || route.route_geometry.coordinates.length < 2) return;
+
+        // Raw points [lat, lon]
+        const rawPoints = route.route_geometry.coordinates.map(c => [c[1], c[0]]);
+
+        // Interpolate for smooth glide between coordinates
+        const smoothPoints = [];
+        for (let i = 0; i < rawPoints.length - 1; i++) {
+            const p1 = rawPoints[i];
+            const p2 = rawPoints[i + 1];
+            smoothPoints.push(p1);
+            
+            // Add intermediate points
+            const steps = 3;
+            for (let s = 1; s < steps; s++) {
+                smoothPoints.push([
+                    p1[0] + (p2[0] - p1[0]) * (s / steps),
+                    p1[1] + (p2[1] - p1[1]) * (s / steps)
+                ]);
+            }
+        }
+        smoothPoints.push(rawPoints[rawPoints.length - 1]);
+
+        const isVan = route.vehicle_class === "van";
+        const iconHtml = isVan ? '<i class="fa-solid fa-truck-pickup"></i>' : '<i class="fa-solid fa-truck-front"></i>';
+
+        const vehicleIcon = L.divIcon({
+            className: "sim-vehicle-icon",
+            html: `<div class="animated-vehicle-dot" style="background-color: ${route.color_hex};">${iconHtml}</div>`,
+            iconSize: [24, 24],
+            iconAnchor: [12, 12]
+        });
+
+        const marker = L.marker(smoothPoints[0], { icon: vehicleIcon }).addTo(state.map);
+        marker.bindTooltip(`<strong>${route.vehicle_name}</strong><br>Status: In Transit`, {
+            direction: "top",
+            offset: [0, -12],
+            className: "driver-map-popup"
+        });
+
+        state.animationMarkers.push(marker);
+
+        let currentStep = 0;
+        const totalSteps = smoothPoints.length;
+        const baseInterval = 65;
+        const speedMs = Math.max(20, Math.round(baseInterval / speedMultiplier));
+
+        const timer = setInterval(() => {
+            if (!state.isAnimating) return;
+            currentStep++;
+            if (currentStep >= totalSteps) {
+                currentStep = 0; // Return to hub / loop route
+            }
+            marker.setLatLng(smoothPoints[currentStep]);
+        }, speedMs);
+
+        state.animationIntervals.push(timer);
+    });
+
+    showToast(`Driver movement simulation running at ${speedMultiplier}x speed.`, "info");
+}
+
+function stopRouteAnimation() {
+    state.isAnimating = false;
+    document.getElementById("startMapAnimBtn")?.classList.remove("hidden");
+    document.getElementById("stopMapAnimBtn")?.classList.add("hidden");
+    const indicator = document.getElementById("animStatusIndicator");
+    if (indicator) indicator.textContent = "Driver Status: Paused at Depot";
+
+    state.animationIntervals.forEach(clearInterval);
+    state.animationIntervals = [];
+
+    state.animationMarkers.forEach(m => state.map.removeLayer(m));
+    state.animationMarkers = [];
+}
+
+// RUN AI SIMULATION (Preset or Custom Problem)
+async function runSimulationRequest(customProblemText = null) {
+    const isCustom = customProblemText !== null;
+    const btn = isCustom 
+        ? document.getElementById("runCustomSimulationBtn") 
+        : document.getElementById("runSimulationBtn");
+
+    const originalHtml = btn.innerHTML;
     btn.disabled = true;
-    btnTextOriginal = btn.innerHTML;
-    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Running Simulation Analysis...';
+    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Analyzing with AI...';
 
     const fleet = buildFleetSpec();
     const payload = {
-        scenario_type: state.selectedScenario,
+        scenario_type: isCustom ? "CUSTOM_SITUATION" : state.selectedScenario,
+        custom_situation_text: customProblemText,
         depot: state.depot,
         fleet: fleet,
         stops: state.stops,
@@ -570,7 +751,7 @@ async function runAiSimulation() {
 
         if (!res.ok) {
             const err = await res.json();
-            throw new Error(err.detail || "Simulation failed");
+            throw new Error(err.detail || "Simulation analysis failed");
         }
 
         const data = await res.json();
@@ -579,11 +760,11 @@ async function runAiSimulation() {
         showToast(`Error: ${err.message}`, "error");
     } finally {
         btn.disabled = false;
-        btn.innerHTML = '<i class="fa-solid fa-play"></i> Run Simulation Analysis';
+        btn.innerHTML = originalHtml;
     }
 }
 
-// Render Simulation Result
+// Render Simulation Result Card
 function renderSimulationResult(data) {
     const card = document.getElementById("simResultCard");
     card.classList.remove("hidden");
@@ -615,10 +796,10 @@ function renderSimulationResult(data) {
     document.getElementById("simAiReport").textContent = data.ai_advisory_recommendation;
     document.getElementById("simActionText").textContent = data.suggested_action;
 
-    showToast("Simulation analysis completed", "success");
+    showToast("AI scenario simulation completed", "success");
 }
 
-// Toast Notifications (Clean, No Emojis)
+// Toast Notifications
 function showToast(message, type = "info") {
     const container = document.getElementById("toastContainer");
     const toast = document.createElement("div");

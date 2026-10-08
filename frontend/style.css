@@ -914,3 +914,161 @@ body {
 .toast.success { border-left: 3px solid var(--color-success); }
 .toast.warning { border-left: 3px solid var(--color-warning); }
 .toast.error { border-left: 3px solid var(--color-danger); }
+
+/* Custom Scenario Textbox */
+.custom-scenario-box {
+    background-color: #17223b;
+    border: 1px solid #3b82f6;
+}
+
+.custom-textarea {
+    width: 100%;
+    background-color: #0b1120;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius);
+    color: #ffffff;
+    font-family: var(--font-sans);
+    font-size: 12px;
+    padding: 8px 10px;
+    resize: vertical;
+    outline: none;
+    line-height: 1.4;
+}
+
+.custom-textarea:focus {
+    border-color: #38bdf8;
+}
+
+.section-divider-label {
+    font-size: 10px;
+    font-weight: 700;
+    color: var(--text-muted);
+    text-align: center;
+    letter-spacing: 0.5px;
+    margin: 4px 0;
+}
+
+/* Map Floating Driver Animation Bar */
+.map-anim-bar {
+    position: absolute;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 999;
+    background-color: #0f172a;
+    border: 1px solid #38bdf8;
+    padding: 8px 14px;
+    border-radius: var(--radius);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.6);
+}
+
+.btn-anim-ctrl {
+    background-color: var(--color-primary);
+    color: #ffffff;
+    border: none;
+    padding: 7px 12px;
+    border-radius: var(--radius);
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.btn-anim-ctrl:hover {
+    background-color: var(--color-primary-hover);
+}
+
+.btn-anim-stop {
+    background-color: var(--color-danger);
+}
+
+.btn-anim-stop:hover {
+    background-color: #b91c1c;
+}
+
+.anim-status-indicator {
+    font-size: 11px;
+    font-family: var(--font-mono);
+    color: #38bdf8;
+}
+
+/* Prompt Suggestion Chips */
+.custom-prompt-chips {
+    margin-bottom: 8px;
+}
+
+.chip-btn {
+    background-color: #1e293b;
+    border: 1px solid #334155;
+    color: #94a3b8;
+    padding: 3px 8px;
+    font-size: 11px;
+    border-radius: 4px;
+    cursor: pointer;
+    text-align: left;
+    transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+
+.chip-btn:hover {
+    background-color: #2563eb;
+    color: #ffffff;
+    border-color: #3b82f6;
+}
+
+/* Speed Selector in Animation Toolbar */
+.anim-speed-selector {
+    display: flex;
+    align-items: center;
+    background-color: #1e293b;
+    border-radius: var(--radius);
+    padding: 2px;
+    border: 1px solid #334155;
+}
+
+.btn-speed {
+    background: transparent;
+    border: none;
+    color: #94a3b8;
+    padding: 3px 8px;
+    font-size: 11px;
+    font-weight: 700;
+    cursor: pointer;
+    border-radius: 3px;
+}
+
+.btn-speed.active {
+    background-color: #2563eb;
+    color: #ffffff;
+}
+
+.btn-speed:hover:not(.active) {
+    color: #ffffff;
+}
+
+/* Vehicle Pulse Animation Marker on Map */
+.animated-vehicle-dot {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #ffffff;
+    font-size: 11px;
+    box-shadow: 0 0 12px rgba(0, 0, 0, 0.9);
+    border: 2px solid #ffffff;
+}
+
+.driver-map-popup {
+    font-size: 11px;
+    line-height: 1.4;
+}
+
+.driver-map-popup strong {
+    color: #2563eb;
+}

@@ -3,12 +3,8 @@ from typing import List, Optional, Dict, Any, Literal
 from backend.app.models.fleet_v2 import CommercialVehicleSpec, DeliveryStop, DepotLocation
 
 class SimulationScenarioRequest(BaseModel):
-    scenario_type: Literal[
-        "BORDER_ENTRY_DELAY",
-        "FLEET_SWAP_TRUCK_TO_VANS",
-        "FLYOVER_HEIGHT_CLOSURE",
-        "SUDDEN_VIP_ORDER_INSERTION"
-    ] = Field(..., description="Selected simulation scenario type")
+    scenario_type: str = Field(default="CUSTOM_SITUATION", description="Selected preset or CUSTOM_SITUATION")
+    custom_situation_text: Optional[str] = Field(default=None, description="Free-text custom situation described by the user")
     scenario_title: Optional[str] = None
     depot: DepotLocation
     fleet: List[CommercialVehicleSpec]
