@@ -1,6 +1,6 @@
 /**
- * RouteOpt - Commercial Fleet Routing & AI What-If Simulator (v2 & v3)
- * Full Client Implementation
+ * RouteOpt - Commercial Fleet Routing & Dispatch System
+ * Driver-friendly UI logic without emojis, em dashes, or unnecessary animations.
  */
 
 // Application State
@@ -19,11 +19,11 @@ const state = {
     routesLayer: null
 };
 
-// Preset Mumbai Logistics Dataset
+// Preset Mumbai Transport Dataset
 const MUMBAI_PRESET = {
     depot: {
         depot_id: "DEPOT-BHIWANDI",
-        name: "Bhiwandi Freight Logistics Hub (Outer Ring)",
+        name: "Bhiwandi Central Freight Hub",
         lat: 19.2967,
         lon: 73.0631,
         operating_hours_sec: 43200
@@ -86,7 +86,7 @@ const MUMBAI_PRESET = {
         },
         {
             stop_id: "STOP-06",
-            name: "Thane West Distribution Center",
+            name: "Thane West Distribution Warehouse",
             lat: 19.2183,
             lon: 72.9781,
             demand_kg: 300,
@@ -104,24 +104,22 @@ document.addEventListener("DOMContentLoaded", () => {
     initEventListeners();
     updateClockDisplay(state.departureHour);
     updateFleetSummary();
-    
-    // Auto-load Mumbai dataset for immediate demo readiness
     loadMumbaiPreset();
 });
 
 // Initialize Leaflet Map
 function initMap() {
     state.map = L.map("map", {
-        center: [19.1200, 72.9500],
+        center: [19.1400, 72.9700],
         zoom: 11,
         zoomControl: false
     });
 
     L.control.zoom({ position: "bottomright" }).addTo(state.map);
 
-    // Dark-styled tiles
+    // High-contrast clean basemap
     L.tileLayer("https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png", {
-        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
+        attribution: '&copy; OpenStreetMap contributors &copy; CARTO',
         maxZoom: 19,
         subdomains: "abcd"
     }).addTo(state.map);
@@ -129,7 +127,6 @@ function initMap() {
     state.markersLayer = L.layerGroup().addTo(state.map);
     state.routesLayer = L.layerGroup().addTo(state.map);
 
-    // Map click to place custom stops
     state.map.on("click", (e) => {
         handleMapClick(e.latlng.lat, e.latlng.lng);
     });
@@ -150,14 +147,14 @@ function initEventListeners() {
         });
     });
 
-    // Shift Time Slider
+    // Time Slider
     const slider = document.getElementById("shiftTimeSlider");
     slider.addEventListener("input", (e) => {
         state.departureHour = parseFloat(e.target.value);
         updateClockDisplay(state.departureHour);
     });
 
-    // Fleet Counters
+    // Vehicle Counter Controls
     document.getElementById("btnIncVan").addEventListener("click", () => {
         state.fleet.vans = Math.min(6, state.fleet.vans + 1);
         document.getElementById("vanCount").textContent = state.fleet.vans;
@@ -187,58 +184,57 @@ function initEventListeners() {
     // Optimize Button
     document.getElementById("optimizeBtn").addEventListener("click", optimizeRoutes);
 
-    // Scenario Selectors
-    document.querySelectorAll(".scenario-option").forEach(opt => {
-        opt.addEventListener("click", () => {
-            document.querySelectorAll(".scenario-option").forEach(o => {
-                o.classList.remove("active");
-                o.querySelector(".scenario-radio i").className = "fa-regular fa-circle";
+    // Scenario Selection
+    document.querySelectorAll(".scenario-card").forEach(card => {
+        card.addEventListener("click", () => {
+            document.querySelectorAll(".scenario-card").forEach(c => {
+                c.classList.remove("active");
+                c.querySelector(".scenario-radio i").className = "fa-regular fa-circle";
             });
-            opt.classList.add("active");
-            opt.querySelector(".scenario-radio i").className = "fa-solid fa-circle-dot";
-            state.selectedScenario = opt.dataset.scenario;
+            card.classList.add("active");
+            card.querySelector(".scenario-radio i").className = "fa-solid fa-circle-dot";
+            state.selectedScenario = card.dataset.scenario;
         });
     });
 
-    // Run AI Simulation Button
+    // Run Simulation
     document.getElementById("runSimulationBtn").addEventListener("click", runAiSimulation);
 }
 
-// Update Clock Display & Municipal No-Entry Indicator
+// Update Clock Display and Traffic Regulation Status
 function updateClockDisplay(hourVal) {
     const hours = Math.floor(hourVal);
     const mins = (hourVal % 1) * 60;
     const ampm = hours >= 12 ? "PM" : "AM";
     const displayHour = hours % 12 === 0 ? 12 : hours % 12;
-    const timeStr = `${String(displayHour).padStart(2, "0")}:${String(mins).padStart(2, "0")} ${ampm} IST`;
+    const timeStr = `${String(displayHour).padStart(2, "0")}:${String(mins).padStart(2, "0")} ${ampm}`;
     
     document.getElementById("clockDisplay").textContent = timeStr;
 
-    // Check No-Entry Status:
-    // Morning peak: 08:00 - 11:30 (8.0 - 11.5)
-    // Evening peak: 17:00 - 21:30 (17.0 - 21.5)
-    const indicator = document.getElementById("noEntryIndicator");
-    const dot = indicator.querySelector(".indicator-dot");
-    const text = document.getElementById("indicatorText");
+    const statusBox = document.getElementById("ruleStatusBox");
+    const statusTitle = document.getElementById("ruleStatusTitle");
+    const statusDesc = document.getElementById("ruleStatusDesc");
 
     if (hourVal >= 8.0 && hourVal <= 11.5) {
-        dot.className = "indicator-dot red";
-        text.textContent = "Morning Peak HCV Ban Active (08:00 - 11:30 AM)";
+        statusBox.className = "rule-status-box status-restricted";
+        statusTitle.textContent = "MORNING NO-ENTRY ACTIVE (08:00 AM - 11:30 AM)";
+        statusDesc.textContent = "Heavy freight trucks (Tata 407) are banned in city limits. Illegal entry risks Rs 20,000 fine. Small delivery vans (Tata Ace) are allowed.";
     } else if (hourVal >= 17.0 && hourVal <= 21.5) {
-        dot.className = "indicator-dot red";
-        text.textContent = "Evening Peak Severe HCV Ban Active (05:00 - 09:30 PM)";
+        statusBox.className = "rule-status-box status-restricted";
+        statusTitle.textContent = "EVENING NO-ENTRY ACTIVE (05:00 PM - 09:30 PM)";
+        statusDesc.textContent = "Severe peak ban on heavy goods vehicles. Only small delivery vans under 3.5 tonnes GVW are permitted.";
     } else {
-        dot.className = "indicator-dot green";
-        text.textContent = "All Urban Corridors Unrestricted for Vans & Trucks";
+        statusBox.className = "rule-status-box status-open";
+        statusTitle.textContent = "ALL ROADS OPEN (UNRESTRICTED)";
+        statusDesc.textContent = "Both delivery vans and heavy freight trucks are permitted on all designated commercial arterial roads.";
     }
 }
 
-// Update Fleet Summary Pill
+// Update Fleet Summary
 function updateFleetSummary() {
-    const badge = document.getElementById("fleetSummaryBadge");
-    badge.textContent = `${state.fleet.vans} Vans | ${state.fleet.trucks} Trucks`;
+    const tag = document.getElementById("fleetSummaryTag");
+    tag.textContent = `${state.fleet.vans} Vans, ${state.fleet.trucks} Trucks`;
     
-    // Enable optimize button if at least 1 vehicle and at least 1 stop
     const optimizeBtn = document.getElementById("optimizeBtn");
     const hasVehicles = (state.fleet.vans + state.fleet.trucks) > 0;
     const hasStops = state.stops.length > 0 && state.depot !== null;
@@ -252,7 +248,7 @@ function loadMumbaiPreset() {
     renderLocationsList();
     renderMapMarkers();
     updateFleetSummary();
-    showToast("Loaded Mumbai Commercial Logistics dataset (Bhiwandi Hub & 6 Drops)", "success");
+    showToast("Loaded Mumbai transport dataset (Bhiwandi Hub and 6 drop locations)", "success");
 }
 
 // Clear All Stops
@@ -264,9 +260,9 @@ function clearAll() {
     state.routesLayer.clearLayers();
     renderLocationsList();
     updateFleetSummary();
-    document.getElementById("routesTabBtn").disabled = true;
+    document.getElementById("itineraryTabBtn").disabled = true;
     document.getElementById("mapMetricsBar").classList.add("hidden");
-    showToast("Reset all locations and routes", "warning");
+    showToast("Reset all locations", "warning");
 }
 
 // Handle Map Clicks
@@ -279,12 +275,12 @@ function handleMapClick(lat, lon) {
             lon: lon,
             operating_hours_sec: 43200
         };
-        showToast("Set Logistics Hub (Depot)", "success");
+        showToast("Set warehouse hub location", "success");
     } else {
         const idx = state.stops.length + 1;
         state.stops.push({
             stop_id: `STOP-${String(idx).padStart(2, "0")}`,
-            name: `Commercial Drop ${idx}`,
+            name: `Delivery Drop Point ${idx}`,
             lat: lat,
             lon: lon,
             demand_kg: 400,
@@ -307,11 +303,11 @@ function renderLocationsList() {
     
     if (!state.depot && state.stops.length === 0) {
         list.innerHTML = `
-            <div class="empty-list-state">
-                <i class="fa-solid fa-map-location-dot"></i>
-                <p>No freight points loaded</p>
+            <div class="empty-state">
+                <i class="fa-solid fa-map"></i>
+                <p>No delivery locations loaded.</p>
                 <button class="btn btn-secondary btn-sm" id="loadSampleBtnInline">
-                    <i class="fa-solid fa-wand-magic-sparkles"></i> Load Mumbai Freight Dataset
+                    <i class="fa-solid fa-download"></i> Load Mumbai Transport Dataset
                 </button>
             </div>
         `;
@@ -320,36 +316,29 @@ function renderLocationsList() {
         return;
     }
 
-    stopsCount.textContent = `${state.stops.length} stops`;
+    stopsCount.textContent = `${state.stops.length} drops`;
     let html = "";
 
     if (state.depot) {
         html += `
-            <div class="location-item depot-item">
-                <div class="location-badge depot-badge"><i class="fa-solid fa-warehouse"></i></div>
-                <div class="location-details">
-                    <div class="location-title">${state.depot.name}</div>
-                    <div class="location-sub">Origin Distribution Center &bull; Central Hub</div>
+            <div class="stop-card">
+                <div class="stop-badge-num hub-badge"><i class="fa-solid fa-warehouse"></i></div>
+                <div class="stop-meta">
+                    <div class="stop-meta-name">${state.depot.name}</div>
+                    <div class="stop-meta-info">Main Warehouse Hub - Starting & Ending Point</div>
                 </div>
             </div>
         `;
     }
 
     state.stops.forEach((s, i) => {
-        const zoneBadge = s.is_in_restricted_urban_core 
-            ? '<span class="tag-orange">Restricted Urban Core</span>' 
-            : '<span class="tag-green">Peripheral Arterial</span>';
-        
+        const zoneText = s.is_in_restricted_urban_core ? "City Core (Restricted)" : "Outer Highway";
         html += `
-            <div class="location-item">
-                <div class="location-badge stop-badge">${i + 1}</div>
-                <div class="location-details">
-                    <div class="location-title">${s.name}</div>
-                    <div class="location-sub">
-                        <span><i class="fa-solid fa-box"></i> ${s.demand_kg} kg</span> &bull; 
-                        <span><i class="fa-solid fa-stopwatch"></i> ${Math.round(s.service_duration_sec / 60)}m unload</span>
-                    </div>
-                    <div class="location-tags-row">${zoneBadge}</div>
+            <div class="stop-card">
+                <div class="stop-badge-num">${i + 1}</div>
+                <div class="stop-meta">
+                    <div class="stop-meta-name">${s.name}</div>
+                    <div class="stop-meta-info">Load: ${s.demand_kg} kg | Unload: ${Math.round(s.service_duration_sec / 60)} mins | ${zoneText}</div>
                 </div>
             </div>
         `;
@@ -366,12 +355,12 @@ function renderMapMarkers() {
     if (state.depot) {
         const depotIcon = L.divIcon({
             className: "custom-depot-marker",
-            html: `<div style="background:#2563eb; color:#fff; width:34px; height:34px; border-radius:50%; display:flex; align-items:center; justify-content:center; box-shadow:0 0 14px rgba(37,99,235,0.7); border:2px solid #fff;"><i class="fa-solid fa-warehouse"></i></div>`,
-            iconSize: [34, 34],
-            iconAnchor: [17, 17]
+            html: `<div style="background:#2563eb; color:#ffffff; width:32px; height:32px; border-radius:4px; display:flex; align-items:center; justify-content:center; border:2px solid #ffffff; font-size:14px;"><i class="fa-solid fa-warehouse"></i></div>`,
+            iconSize: [32, 32],
+            iconAnchor: [16, 16]
         });
         const marker = L.marker([state.depot.lat, state.depot.lon], { icon: depotIcon })
-            .bindPopup(`<strong>${state.depot.name}</strong><br>Central Logistics Hub`);
+            .bindPopup(`<strong>${state.depot.name}</strong><br>Warehouse Hub`);
         state.markersLayer.addLayer(marker);
         bounds.push([state.depot.lat, state.depot.lon]);
     }
@@ -379,59 +368,59 @@ function renderMapMarkers() {
     state.stops.forEach((s, i) => {
         const stopIcon = L.divIcon({
             className: "custom-stop-marker",
-            html: `<div style="background:#0f172a; color:#38bdf8; width:28px; height:28px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:12px; border:2px solid #38bdf8; box-shadow:0 0 8px rgba(56,189,248,0.5);">${i + 1}</div>`,
-            iconSize: [28, 28],
-            iconAnchor: [14, 14]
+            html: `<div style="background:#0f172a; color:#38bdf8; width:26px; height:26px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:11px; border:2px solid #38bdf8;">${i + 1}</div>`,
+            iconSize: [26, 26],
+            iconAnchor: [13, 13]
         });
         const marker = L.marker([s.lat, s.lon], { icon: stopIcon })
-            .bindPopup(`<strong>#${i + 1} ${s.name}</strong><br>Demand: ${s.demand_kg} kg<br>Zone: ${s.is_in_restricted_urban_core ? "Restricted Urban Core" : "Peripheral Road"}`);
+            .bindPopup(`<strong>Stop ${i + 1}: ${s.name}</strong><br>Weight: ${s.demand_kg} kg<br>Zone: ${s.is_in_restricted_urban_core ? "City Core" : "Outer Arterial"}`);
         state.markersLayer.addLayer(marker);
         bounds.push([s.lat, s.lon]);
     });
 
     if (bounds.length > 0) {
-        state.map.fitBounds(bounds, { padding: [50, 50] });
+        state.map.fitBounds(bounds, { padding: [40, 40] });
     }
 }
 
-// Build Fleet Configuration Array
+// Build Fleet Spec
 function buildFleetSpec() {
     const fleet = [];
     for (let i = 0; i < state.fleet.vans; i++) {
         fleet.push({
             vehicle_id: `VAN-${String(i + 1).padStart(2, "0")}`,
-            name: `Tata Ace Delivery Van #${i + 1}`,
+            name: `Tata Ace Van ${i + 1}`,
             vehicle_class: "van",
             gross_vehicle_weight_tonnes: 2.2,
             height_meters: 1.9,
             payload_capacity_kg: 1200.0,
             fixed_dispatch_cost: 250.0,
             running_cost_per_km: 12.0,
-            color_hex: "#06b6d4" // Vibrant Cyan
+            color_hex: "#0284c7" // Solid clean blue
         });
     }
     for (let i = 0; i < state.fleet.trucks; i++) {
         fleet.push({
             vehicle_id: `TRUCK-${String(i + 1).padStart(2, "0")}`,
-            name: `Tata 407 Freight Truck #${i + 1}`,
+            name: `Tata 407 Truck ${i + 1}`,
             vehicle_class: "truck",
             gross_vehicle_weight_tonnes: 7.2,
             height_meters: 3.1,
             payload_capacity_kg: 4500.0,
             fixed_dispatch_cost: 600.0,
             running_cost_per_km: 22.0,
-            color_hex: "#f59e0b" // Vibrant Amber
+            color_hex: "#d97706" // Solid clean amber
         });
     }
     return fleet;
 }
 
-// Optimize Commercial Fleet Routes
+// Calculate Optimal Routes
 async function optimizeRoutes() {
     const btn = document.getElementById("optimizeBtn");
     const btnText = document.getElementById("optimizeBtnText");
     btn.disabled = true;
-    btnText.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Solving CVRPTW...';
+    btnText.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Calculating Routes...';
 
     const fleet = buildFleetSpec();
     const payload = {
@@ -453,16 +442,16 @@ async function optimizeRoutes() {
 
         if (!res.ok) {
             const err = await res.json();
-            throw new Error(err.detail || "Optimization failed");
+            throw new Error(err.detail || "Route calculation failed");
         }
 
         const data = await res.json();
         handleOptimizationSuccess(data);
     } catch (err) {
-        showToast(`Optimization Error: ${err.message}`, "error");
+        showToast(`Error: ${err.message}`, "error");
     } finally {
         btn.disabled = false;
-        btnText.innerHTML = '<i class="fa-solid fa-bolt"></i> Optimize Commercial Fleet';
+        btnText.innerHTML = '<i class="fa-solid fa-check"></i> Calculate Optimal Routes';
     }
 }
 
@@ -471,94 +460,75 @@ function handleOptimizationSuccess(data) {
     state.currentRoutes = data.routes;
     state.routesLayer.clearLayers();
 
-    // Render Routes on Leaflet Map
     const allBounds = [];
     data.routes.forEach(route => {
         if (!route.route_geometry || !route.route_geometry.coordinates) return;
         
-        // GeoJSON coordinates are [lon, lat], Leaflet expects [lat, lon]
         const latlngs = route.route_geometry.coordinates.map(coord => [coord[1], coord[0]]);
         
         const polyline = L.polyline(latlngs, {
             color: route.color_hex,
             weight: 5,
-            opacity: 0.85,
+            opacity: 0.9,
             lineJoin: "round"
-        }).bindPopup(`<strong>${route.vehicle_name}</strong><br>Class: ${route.vehicle_class.toUpperCase()}<br>Distance: ${(route.total_distance_m / 1000).toFixed(1)} km<br>Est Cost: ₹${route.estimated_cost_inr}`);
+        }).bindPopup(`<strong>${route.vehicle_name}</strong><br>Distance: ${(route.total_distance_m / 1000).toFixed(1)} km<br>Est Cost: Rs ${route.estimated_cost_inr}`);
         
         state.routesLayer.addLayer(polyline);
         latlngs.forEach(ll => allBounds.push(ll));
     });
 
     if (allBounds.length > 0) {
-        state.map.fitBounds(allBounds, { padding: [50, 50] });
+        state.map.fitBounds(allBounds, { padding: [40, 40] });
     }
 
-    // Update Floating Metrics Bar
     const metricsBar = document.getElementById("mapMetricsBar");
     metricsBar.classList.remove("hidden");
     document.getElementById("metricDist").textContent = `${data.total_fleet_distance_km} km`;
     document.getElementById("metricTime").textContent = `${data.total_fleet_duration_hours} hrs`;
     document.getElementById("metricVehicles").textContent = `${data.routes.length} Active Vehicles`;
 
-    // Render Routes Tab
-    renderRoutesTab(data);
+    renderItineraryTab(data);
 
-    // Switch to Routes Tab
-    const routesTabBtn = document.getElementById("routesTabBtn");
-    routesTabBtn.disabled = false;
-    routesTabBtn.click();
+    const itineraryTabBtn = document.getElementById("itineraryTabBtn");
+    itineraryTabBtn.disabled = false;
+    itineraryTabBtn.click();
 
-    showToast(`Optimal fleet plan generated (${data.solve_duration_ms} ms)`, "success");
+    showToast(`Optimal routes calculated in ${data.solve_duration_ms} ms`, "success");
 }
 
-// Render Solved Routes Itinerary Tab
-function renderRoutesTab(data) {
+// Render Driver Itinerary Tab
+function renderItineraryTab(data) {
     document.getElementById("summaryDistance").textContent = `${data.total_fleet_distance_km} km`;
     document.getElementById("summaryDuration").textContent = `${data.total_fleet_duration_hours} hrs`;
-    document.getElementById("summaryCost").textContent = `₹${Math.round(data.total_fleet_cost_inr).toLocaleString()}`;
+    document.getElementById("summaryCost").textContent = `Rs ${Math.round(data.total_fleet_cost_inr).toLocaleString()}`;
     document.getElementById("summaryVehicles").textContent = data.routes.length;
 
     const container = document.getElementById("routesContainer");
     let html = "";
 
-    data.routes.forEach((r, idx) => {
-        const isVan = r.vehicle_class === "van";
-        const iconClass = isVan ? "fa-van-shuttle" : "fa-truck";
-        
+    data.routes.forEach((r) => {
         html += `
-            <div class="card route-result-card" style="border-left: 4px solid ${r.color_hex};">
-                <div class="route-header">
-                    <div class="route-title-box">
-                        <i class="fa-solid ${iconClass}" style="color: ${r.color_hex}; font-size: 18px;"></i>
-                        <div>
-                            <h4>${r.vehicle_name}</h4>
-                            <span class="route-sub">${r.vehicle_class.toUpperCase()} &bull; Total Cargo: ${r.total_load_kg} kg</span>
-                        </div>
-                    </div>
-                    <span class="badge" style="background: rgba(255,255,255,0.1); color: ${r.color_hex};">₹${r.estimated_cost_inr}</span>
+            <div class="route-result-card" style="border-left: 4px solid ${r.color_hex};">
+                <div class="route-header-box">
+                    <span class="route-title">${r.vehicle_name} (${r.vehicle_class.toUpperCase()})</span>
+                    <span class="route-cost">Rs ${r.estimated_cost_inr}</span>
                 </div>
-
-                <div class="route-quick-stats">
-                    <span><i class="fa-solid fa-road"></i> ${(r.total_distance_m / 1000).toFixed(1)} km</span>
-                    <span><i class="fa-solid fa-clock"></i> ${(r.total_duration_s / 3600).toFixed(1)} hrs</span>
-                    <span><i class="fa-solid fa-location-dot"></i> ${r.stops_visited.length - 2} drops</span>
+                <div class="route-stats-row">
+                    <span>Distance: ${(r.total_distance_m / 1000).toFixed(1)} km</span>
+                    <span>Time: ${(r.total_duration_s / 3600).toFixed(1)} hrs</span>
+                    <span>Cargo: ${r.total_load_kg} kg</span>
                 </div>
-
-                <div class="stop-timeline">
+                <div class="timeline-stops">
         `;
 
         r.stops_visited.forEach((s, sIdx) => {
             const isDepot = sIdx === 0 || sIdx === r.stops_visited.length - 1;
-            const markerIcon = isDepot ? '<i class="fa-solid fa-warehouse"></i>' : sIdx;
-            
+            const markerText = isDepot ? "Hub" : sIdx;
             html += `
-                <div class="timeline-stop-row">
-                    <div class="stop-num">${markerIcon}</div>
-                    <div class="stop-desc">
-                        <strong>${s.name}</strong>
-                        <span class="stop-time"><i class="fa-regular fa-clock"></i> Arrival: ${s.clock_time_str}</span>
-                    </div>
+                <div class="timeline-row">
+                    <span class="timeline-dot">${markerText}</span>
+                    <span class="timeline-name">${s.name}</span>
+                    <span class="timeline-time">${s.clock_time_str}</span>
                 </div>
             `;
         });
@@ -572,11 +542,12 @@ function renderRoutesTab(data) {
     container.innerHTML = html;
 }
 
-// Run AI "What-If" Simulation
+// Run Scenario Simulation
 async function runAiSimulation() {
     const btn = document.getElementById("runSimulationBtn");
     btn.disabled = true;
-    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Simulating via Groq / Grok LLM...';
+    btnTextOriginal = btn.innerHTML;
+    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Running Simulation Analysis...';
 
     const fleet = buildFleetSpec();
     const payload = {
@@ -606,62 +577,60 @@ async function runAiSimulation() {
         const data = await res.json();
         renderSimulationResult(data);
     } catch (err) {
-        showToast(`Simulation Error: ${err.message}`, "error");
+        showToast(`Error: ${err.message}`, "error");
     } finally {
         btn.disabled = false;
-        btn.innerHTML = '<i class="fa-solid fa-wand-magic-sparkles"></i> Run AI What-If Simulation';
+        btn.innerHTML = '<i class="fa-solid fa-play"></i> Run Simulation Analysis';
     }
 }
 
-// Render AI Simulation Results Card
+// Render Simulation Result
 function renderSimulationResult(data) {
     const card = document.getElementById("simResultCard");
     card.classList.remove("hidden");
 
-    // Pill
     const pill = document.getElementById("simStatusPill");
     if (data.feasibility_status === "VIOLATION_DETECTED") {
-        pill.className = "status-pill status-violation";
-        pill.textContent = "VIOLATION DETECTED";
+        pill.className = "result-badge badge-warning";
+        pill.textContent = "RULE VIOLATION DETECTED";
     } else {
-        pill.className = "status-pill status-compliant";
-        pill.textContent = "COMPLIANT / RE-ROUTED";
+        pill.className = "result-badge badge-success";
+        pill.textContent = "COMPLIANT / PERMITTED";
     }
 
     document.getElementById("simSpeedText").textContent = `${(data.simulation_duration_ms / 1000).toFixed(2)}s`;
     document.getElementById("simScenarioTitle").textContent = data.scenario_title;
     
-    document.getElementById("simCostDelta").textContent = (data.cost_difference_inr >= 0 ? "+" : "") + "₹" + Math.round(data.cost_difference_inr).toLocaleString();
+    document.getElementById("simCostDelta").textContent = (data.cost_difference_inr >= 0 ? "+" : "") + "Rs " + Math.round(data.cost_difference_inr).toLocaleString();
     document.getElementById("simTimeDelta").textContent = (data.simulated_duration_hours - data.baseline_duration_hours >= 0 ? "+" : "") + (data.simulated_duration_hours - data.baseline_duration_hours).toFixed(1) + " hrs";
     
     const fineBox = document.getElementById("simFineRisk");
     if (data.violations && data.violations.length > 0) {
-        fineBox.textContent = "₹" + data.violations[0].penalty_fine_inr.toLocaleString();
-        fineBox.className = "text-danger";
+        fineBox.textContent = "Rs " + data.violations[0].penalty_fine_inr.toLocaleString();
+        fineBox.className = "stat-digit text-danger";
     } else {
-        fineBox.textContent = "₹0 (Clean)";
-        fineBox.className = "text-success";
+        fineBox.textContent = "Rs 0 (Clean)";
+        fineBox.className = "stat-digit text-success";
     }
 
     document.getElementById("simAiReport").textContent = data.ai_advisory_recommendation;
     document.getElementById("simActionText").textContent = data.suggested_action;
-    document.getElementById("aiEngineBadge").textContent = data.llm_engine_used;
 
-    showToast("AI Scenario Simulation completed", "success");
+    showToast("Simulation analysis completed", "success");
 }
 
-// Toast Notifications
+// Toast Notifications (Clean, No Emojis)
 function showToast(message, type = "info") {
     const container = document.getElementById("toastContainer");
     const toast = document.createElement("div");
     toast.className = `toast ${type}`;
     
-    const icon = type === "success" ? "fa-circle-check" : type === "error" ? "fa-triangle-exclamation" : "fa-circle-info";
+    const icon = type === "success" ? "fa-circle-check" : type === "error" ? "fa-circle-xmark" : "fa-circle-info";
     toast.innerHTML = `<i class="fa-solid ${icon}"></i> <span>${message}</span>`;
     
     container.appendChild(toast);
     setTimeout(() => {
         toast.style.opacity = "0";
-        setTimeout(() => toast.remove(), 300);
-    }, 3200);
+        setTimeout(() => toast.remove(), 250);
+    }, 3000);
 }

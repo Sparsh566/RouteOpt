@@ -1,6 +1,6 @@
 # RouteOpt: Technical Implementation Specification (Versions 2 & 3 Combined)
 ## Van & Truck Commercial Logistics, Regional Government Road Guidelines & AI "What-If" Simulation Engine
-**PBL 5th Semester — Engineering Specification & Executable Code Manual**  
+**PBL 5th Semester  -  Engineering Specification & Executable Code Manual**  
 **Authors:** Aditya Khiratkar (Member 1), Aditya Yadav (Member 2), Sparsh (Member 3)  
 
 ---
@@ -9,47 +9,47 @@
 
 ```text
 RouteOpt/
-├── backend/
-│   ├── app/
-│   │   ├── controllers/
-│   │   │   ├── __init__.py
-│   │   │   ├── optimize_v1.py          # Legacy v1 single-driver endpoint
-│   │   │   ├── optimize_v2.py          # Version 2 Van & Truck regulatory CVRPTW
-│   │   │   ├── simulate_v3.py          # Version 3 AI "What-If" Scenario Simulator
-│   │   │   ├── geocode_controller.py   # Indian address geocoding & landmark lookup
-│   │   │   └── websocket_hub.py        # Real-time driver GPS & live diversion hub
-│   │   ├── models/
-│   │   │   ├── __init__.py
-│   │   │   ├── fleet_v2.py             # Van & Truck vehicle classes, delivery stops, windows
-│   │   │   ├── regulations.py          # Government road guidelines, no-entry hours, GVW limits
-│   │   │   └── simulation_v3.py        # What-If scenario payloads & AI advisory responses
-│   │   ├── services/
-│   │   │   ├── __init__.py
-│   │   │   ├── osrm_service.py         # OSRM client with truck/van distance matrices
-│   │   │   ├── cvrptw_solver.py        # OR-Tools Multi-Vehicle solver with road restrictions
-│   │   │   ├── regulation_engine.py    # Mumbai/Pune municipal road guidelines & violation checker
-│   │   │   ├── traffic_engine.py       # Indian Peak-Hour Congestion Matrix Multiplier
-│   │   │   └── ai_simulation_engine.py # AI "What-If" perturbation runner & LLM Advisor
-│   │   ├── config.py                   # Environment settings & Groq/Gemini API keys
-│   │   ├── utils.py                    # Custom exceptions, geometry decoders & error handlers
-│   │   └── main.py                     # FastAPI application entrypoint & middleware
-│   ├── tests/
-│   │   ├── test_regulations.py         # Tests for municipal no-entry & height barrier compliance
-│   │   ├── test_cvrptw_fleet.py        # Tests for Van vs Truck capacity & time windows
-│   │   └── test_ai_simulation.py       # Tests for "What-If" scenario simulations & AI outputs
-│   ├── Dockerfile                      # Multi-stage production container
-│   └── requirements.txt                # Production dependencies
-├── frontend/
-│   ├── index.html                      # Dispatch console with "What-If Simulation Sandbox"
-│   ├── app.js                          # Leaflet.js Van/Truck color-coded routing & scenario UI
-│   ├── style.css                       # Modern dark-mode dashboard styling
-│   └── assets/                         # Van, Truck and Barrier map icons
-├── data/
-│   ├── india-latest.osrm               # Pre-processed OpenStreetMap graph
-│   └── regional_rules_mumbai_pune.json # Municipal no-entry schedules & bridge limits
-├── docker-compose.yml                   # Unified stack: FastAPI, OSRM, Redis
-├── plan.md                             # High-level strategic & architectural blueprint
-└── implementation.md                   # This low-level technical specification
+ backend/
+    app/
+       controllers/
+          __init__.py
+          optimize_v1.py          # Legacy v1 single-driver endpoint
+          optimize_v2.py          # Version 2 Van & Truck regulatory CVRPTW
+          simulate_v3.py          # Version 3 AI "What-If" Scenario Simulator
+          geocode_controller.py   # Indian address geocoding & landmark lookup
+          websocket_hub.py        # Real-time driver GPS & live diversion hub
+       models/
+          __init__.py
+          fleet_v2.py             # Van & Truck vehicle classes, delivery stops, windows
+          regulations.py          # Government road guidelines, no-entry hours, GVW limits
+          simulation_v3.py        # What-If scenario payloads & AI advisory responses
+       services/
+          __init__.py
+          osrm_service.py         # OSRM client with truck/van distance matrices
+          cvrptw_solver.py        # OR-Tools Multi-Vehicle solver with road restrictions
+          regulation_engine.py    # Mumbai/Pune municipal road guidelines & violation checker
+          traffic_engine.py       # Indian Peak-Hour Congestion Matrix Multiplier
+          ai_simulation_engine.py # AI "What-If" perturbation runner & LLM Advisor
+       config.py                   # Environment settings & Groq/Gemini API keys
+       utils.py                    # Custom exceptions, geometry decoders & error handlers
+       main.py                     # FastAPI application entrypoint & middleware
+    tests/
+       test_regulations.py         # Tests for municipal no-entry & height barrier compliance
+       test_cvrptw_fleet.py        # Tests for Van vs Truck capacity & time windows
+       test_ai_simulation.py       # Tests for "What-If" scenario simulations & AI outputs
+    Dockerfile                      # Multi-stage production container
+    requirements.txt                # Production dependencies
+ frontend/
+    index.html                      # Dispatch console with "What-If Simulation Sandbox"
+    app.js                          # Leaflet.js Van/Truck color-coded routing & scenario UI
+    style.css                       # Modern dark-mode dashboard styling
+    assets/                         # Van, Truck and Barrier map icons
+ data/
+    india-latest.osrm               # Pre-processed OpenStreetMap graph
+    regional_rules_mumbai_pune.json # Municipal no-entry schedules & bridge limits
+ docker-compose.yml                   # Unified stack: FastAPI, OSRM, Redis
+ plan.md                             # High-level strategic & architectural blueprint
+ implementation.md                   # This low-level technical specification
 ```
 
 ---
@@ -626,6 +626,6 @@ def test_flyover_height_restriction():
 ## 7. Deliverables Checklist for Tomorrow's Presentation
 
 - [x] **Fleet Scope Locked:** Commercial **Delivery Vans (LCVs)** and **Freight Trucks (MCVs/HCVs)** explicitly modeled.
-- [x] **Government Road Guidelines Active:** Municipal No-Entry windows (08:00–11:30 AM & 17:00–21:30 PM), flyover height barriers ($2.5\text{m}$), and bridge GVW limits enforced.
+- [x] **Government Road Guidelines Active:** Municipal No-Entry windows (08:00-11:30 AM & 17:00-21:30 PM), flyover height barriers ($2.5\text{m}$), and bridge GVW limits enforced.
 - [x] **AI "What-If" Simulation Engine Ready:** Evaluates operational disruptions (border delays, fleet swap trade-offs) and outputs LLM-powered executive recommendations.
 - [x] **Zero-Cost Demo Strategy:** Runs fully offline with embedded municipal JSON rules and fallback heuristic advisory.
