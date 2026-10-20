@@ -1072,3 +1072,394 @@ body {
 .driver-map-popup strong {
     color: #2563eb;
 }
+
+/* Floating Map Regulatory Layers Control */
+.map-layers-control {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    z-index: 900;
+    background-color: rgba(15, 23, 42, 0.92);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius);
+    padding: 10px 14px;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(8px);
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    min-width: 195px;
+}
+
+.layers-title {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: #94a3b8;
+    margin-bottom: 2px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.layer-toggle-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    font-weight: 500;
+    color: #f1f5f9;
+    cursor: pointer;
+    user-select: none;
+}
+
+.layer-toggle-item input[type="checkbox"] {
+    accent-color: var(--color-primary);
+    cursor: pointer;
+}
+
+.layer-indicator {
+    width: 10px;
+    height: 10px;
+    border-radius: 2px;
+    display: inline-block;
+}
+
+.geofence-indicator {
+    background-color: rgba(239, 68, 68, 0.5);
+    border: 1px dashed #ef4444;
+}
+
+.barrier-indicator {
+    background-color: #f59e0b;
+    border-radius: 50%;
+}
+
+.bridge-indicator {
+    background-color: #ea580c;
+    border-radius: 50%;
+}
+
+/* Regulatory Map Markers */
+.regulatory-map-marker {
+    background-color: #0f172a;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.6);
+}
+
+.barrier-map-marker {
+    border: 2px solid #f59e0b;
+    color: #f59e0b;
+}
+
+.bridge-map-marker {
+    border: 2px solid #ea580c;
+    color: #ea580c;
+}
+
+.regulatory-popup h4 {
+    font-size: 13px;
+    margin-bottom: 4px;
+    color: #f8fafc;
+}
+
+.regulatory-popup p {
+    font-size: 11px;
+    color: #94a3b8;
+    margin-bottom: 4px;
+    line-height: 1.4;
+}
+
+.regulatory-tag {
+    display: inline-block;
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-size: 10px;
+    font-weight: 600;
+}
+
+.tag-barrier {
+    background-color: rgba(245, 158, 11, 0.2);
+    color: #f59e0b;
+    border: 1px solid rgba(245, 158, 11, 0.4);
+}
+
+.tag-bridge {
+    background-color: rgba(234, 88, 12, 0.2);
+    color: #ea580c;
+    border: 1px solid rgba(234, 88, 12, 0.4);
+}
+
+.tag-geofence {
+    background-color: rgba(239, 68, 68, 0.2);
+    color: #ef4444;
+    border: 1px solid rgba(239, 68, 68, 0.4);
+}
+
+/* Modal Backdrop & Styles */
+.modal-backdrop {
+    position: fixed;
+    inset: 0;
+    background-color: rgba(0, 0, 0, 0.75);
+    backdrop-filter: blur(5px);
+    z-index: 2000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+}
+
+.modal-backdrop.hidden {
+    display: none !important;
+}
+
+.modal-card {
+    background-color: #0f172a;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.8);
+    display: flex;
+    flex-direction: column;
+    max-height: 90vh;
+    animation: modalSlideIn 0.2s ease-out;
+}
+
+@keyframes modalSlideIn {
+    from { transform: translateY(15px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+}
+
+.manifest-modal {
+    width: 900px;
+    max-width: 96%;
+}
+
+.modal-header {
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--border-color);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background-color: #0b1120;
+    border-radius: 8px 8px 0 0;
+}
+
+.modal-title-group {
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+}
+
+.modal-title-group h2 {
+    font-size: 16px;
+    color: #ffffff;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.manifest-serial {
+    font-size: 11px;
+    font-family: var(--font-mono);
+    color: #38bdf8;
+    background-color: rgba(56, 189, 248, 0.1);
+    padding: 2px 6px;
+    border-radius: 3px;
+    border: 1px solid rgba(56, 189, 248, 0.2);
+}
+
+.modal-close-btn {
+    background: transparent;
+    border: none;
+    font-size: 24px;
+    color: #94a3b8;
+    cursor: pointer;
+    line-height: 1;
+}
+
+.modal-close-btn:hover {
+    color: #ffffff;
+}
+
+.modal-body {
+    padding: 20px;
+    overflow-y: auto;
+    flex: 1;
+    font-size: 12px;
+}
+
+.modal-footer {
+    padding: 14px 20px;
+    border-top: 1px solid var(--border-color);
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    background-color: #0b1120;
+    border-radius: 0 0 8px 8px;
+}
+
+/* Manifest Content Layout */
+.manifest-header-block {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 16px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.manifest-meta-col strong {
+    color: #ffffff;
+    display: block;
+    margin-bottom: 2px;
+}
+
+.manifest-meta-col span {
+    color: #94a3b8;
+    font-size: 11px;
+}
+
+.manifest-badge-legal {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background-color: rgba(22, 163, 74, 0.15);
+    border: 1px solid #16a34a;
+    color: #4ade80;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 600;
+}
+
+.manifest-section-title {
+    font-size: 13px;
+    color: #f1f5f9;
+    font-weight: 700;
+    margin: 14px 0 8px 0;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.manifest-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 14px;
+    font-size: 11px;
+}
+
+.manifest-table th {
+    background-color: #1e293b;
+    color: #94a3b8;
+    font-weight: 600;
+    text-align: left;
+    padding: 8px 10px;
+    border: 1px solid var(--border-color);
+}
+
+.manifest-table td {
+    padding: 8px 10px;
+    border: 1px solid var(--border-color);
+    color: #e2e8f0;
+}
+
+.manifest-table tr:nth-child(even) td {
+    background-color: rgba(30, 41, 59, 0.4);
+}
+
+.manifest-signatures {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 24px;
+    padding-top: 16px;
+    border-top: 1px dashed var(--border-color);
+}
+
+.sig-box {
+    width: 200px;
+    text-align: center;
+    border-top: 1px solid #94a3b8;
+    padding-top: 6px;
+    font-size: 11px;
+    color: #94a3b8;
+}
+
+/* Print Stylesheet for Physical Dispatch Sheet / PDF */
+@media print {
+    body {
+        background-color: #ffffff !important;
+        color: #000000 !important;
+        overflow: visible !important;
+    }
+
+    .app-container,
+    .modal-backdrop {
+        display: block !important;
+        position: static !important;
+        background: transparent !important;
+        padding: 0 !important;
+    }
+
+    .sidebar,
+    .map-wrapper,
+    .modal-header .modal-close-btn,
+    .modal-footer {
+        display: none !important;
+    }
+
+    .modal-card {
+        border: none !important;
+        box-shadow: none !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        background-color: #ffffff !important;
+        color: #000000 !important;
+    }
+
+    .modal-header {
+        background: transparent !important;
+        border-bottom: 2px solid #000000 !important;
+        padding: 0 0 10px 0 !important;
+    }
+
+    .modal-title-group h2,
+    .manifest-section-title,
+    .manifest-meta-col strong {
+        color: #000000 !important;
+    }
+
+    .manifest-serial {
+        border: 1px solid #000000 !important;
+        color: #000000 !important;
+        background: transparent !important;
+    }
+
+    .manifest-badge-legal {
+        border: 1px solid #000000 !important;
+        color: #000000 !important;
+        background: transparent !important;
+    }
+
+    .manifest-table th {
+        background-color: #f1f5f9 !important;
+        color: #000000 !important;
+        border: 1px solid #000000 !important;
+    }
+
+    .manifest-table td {
+        color: #000000 !important;
+        border: 1px solid #000000 !important;
+        background-color: #ffffff !important;
+    }
+
+    .sig-box {
+        border-top: 1px solid #000000 !important;
+        color: #000000 !important;
+    }
+}
+

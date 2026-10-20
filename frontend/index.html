@@ -282,9 +282,12 @@
                             </div>
                         </div>
 
-                        <div style="margin-top: 12px;">
+                        <div style="margin-top: 12px; display: flex; flex-direction: column; gap: 8px;">
                             <button class="btn btn-primary btn-block" id="itineraryPlayAnimBtn">
                                 <i class="fa-solid fa-play"></i> Start Driver Route Animation on Map
+                            </button>
+                            <button class="btn btn-secondary btn-block" id="exportManifestBtn">
+                                <i class="fa-solid fa-file-invoice"></i> Export & Print Dispatch Manifest
                             </button>
                         </div>
                     </div>
@@ -352,9 +355,53 @@
                 <span class="anim-status-indicator" id="animStatusIndicator">Driver Status: Ready</span>
             </div>
 
+            <!-- Map Floating Regulatory Layers Toggle Control -->
+            <div class="map-layers-control" id="mapLayersControl">
+                <div class="layers-title"><i class="fa-solid fa-layer-group"></i> Road Restrictions</div>
+                <label class="layer-toggle-item">
+                    <input type="checkbox" id="toggleGeofence" checked>
+                    <span class="layer-indicator geofence-indicator"></span>
+                    <span>No-Entry Geofence</span>
+                </label>
+                <label class="layer-toggle-item">
+                    <input type="checkbox" id="toggleBarriers" checked>
+                    <span class="layer-indicator barrier-indicator"></span>
+                    <span>2.5m Height Gantries</span>
+                </label>
+                <label class="layer-toggle-item">
+                    <input type="checkbox" id="toggleBridges" checked>
+                    <span class="layer-indicator bridge-indicator"></span>
+                    <span>7.5T Bridge Limits</span>
+                </label>
+            </div>
+
             <!-- Notification Toast Container -->
             <div class="toast-container" id="toastContainer"></div>
         </main>
+    </div>
+
+    <!-- Dispatch Manifest Modal -->
+    <div class="modal-backdrop hidden" id="manifestModalBackdrop">
+        <div class="modal-card manifest-modal" id="manifestModal">
+            <div class="modal-header">
+                <div class="modal-title-group">
+                    <h2><i class="fa-solid fa-file-invoice"></i> Commercial Dispatch Manifest</h2>
+                    <span class="manifest-serial" id="manifestSerialId">MANIFEST-MMRDA-20261020</span>
+                </div>
+                <button class="modal-close-btn" id="closeManifestBtn" title="Close manifest">&times;</button>
+            </div>
+            <div class="modal-body" id="manifestContent">
+                <!-- Dynamically populated by app.js -->
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-outline" id="downloadCsvBtn">
+                    <i class="fa-solid fa-file-csv"></i> Download CSV
+                </button>
+                <button class="btn btn-primary" id="printManifestBtn">
+                    <i class="fa-solid fa-print"></i> Print Official Manifest
+                </button>
+            </div>
+        </div>
     </div>
 
     <!-- Leaflet JS -->

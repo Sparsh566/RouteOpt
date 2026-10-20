@@ -21,11 +21,92 @@ const state = {
     markersLayer: null,
     routesLayer: null,
     
+    // Regulatory spatial layers
+    geofenceLayer: null,
+    barriersLayer: null,
+    bridgesLayer: null,
+    lastOptimizationData: null,
+    
     // Animation tracking
     animationMarkers: [],
     animationIntervals: [],
     isAnimating: false
 };
+
+// Mumbai Metropolitan Regulatory Geofence (Greater Mumbai Urban Core)
+const MUMBAI_GEOFENCE_COORDS = [
+    [19.2550, 72.8600], // Dahisar Border Checkpost (North-West)
+    [19.2300, 72.9150], // Sanjay Gandhi National Park Ridge
+    [19.1750, 72.9580], // Mulund Border Checkpost (North-East)
+    [19.1200, 72.9400], // Bhandup / Kanjurmarg East
+    [19.0600, 72.9380], // Mankhurd / Vashi Creek Gate (East)
+    [19.0150, 72.8850], // Wadala / Port Trust Corridor
+    [18.9100, 72.8250], // Colaba / South Mumbai Tip
+    [18.9300, 72.8150], // Nariman Point / Marine Drive
+    [19.0150, 72.8150], // Worli Seaface
+    [19.0600, 72.8250], // Bandra West
+    [19.1350, 72.8150], // Juhu / Versova Coastline
+    [19.2000, 72.8350], // Malad / Kandivali West
+    [19.2550, 72.8600]  // Back to Dahisar Checkpost
+];
+
+// Structural Road Barriers (Flyover Height Gantries & Bridge Load Limits)
+const REGULATORY_BARRIERS = [
+    {
+        type: "height_gantry",
+        name: "JJ Flyover Overhead Clearance Gantry",
+        lat: 18.9550,
+        lon: 72.8360,
+        height_limit_m: 2.5,
+        rule_details: "2.5m Max Clearance. Heavy freight trucks (Tata 407, Eicher) barred; must divert via P D'Mello Road ground-level arterial.",
+        penalty: "Collision hazard with overhead gantry / MVA Sec 115 fine"
+    },
+    {
+        type: "height_gantry",
+        name: "Kalanagar Junction Flyover (Bandra East)",
+        lat: 19.0580,
+        lon: 72.8520,
+        height_limit_m: 2.5,
+        rule_details: "2.5m Steel Clearance Gantry. Only delivery vans (Tata Ace) allowed on flyover. Heavy trucks restricted to surface grade.",
+        penalty: "+35% transit delay on surface road"
+    },
+    {
+        type: "height_gantry",
+        name: "Amar Mahal Junction Flyover (Chembur)",
+        lat: 19.0680,
+        lon: 72.8980,
+        height_limit_m: 2.5,
+        rule_details: "2.5m Clearance Bar. Freight trucks diverted to ground-level roundabout.",
+        penalty: "Low clearance obstruction hazard"
+    },
+    {
+        type: "height_gantry",
+        name: "Sion Circle Overhead Clearance Bar",
+        lat: 19.0380,
+        lon: 72.8620,
+        height_limit_m: 2.5,
+        rule_details: "2.5m Height Clearance Bar. Surface detour mandatory for trucks.",
+        penalty: "Traffic obstruction penalty"
+    },
+    {
+        type: "bridge_weight",
+        name: "Sion-Bandra Link Road Old Bridge",
+        lat: 19.0430,
+        lon: 72.8580,
+        weight_limit_t: 7.5,
+        rule_details: "7.5 Tonnes Gross Vehicle Weight (GVW) Restriction. Old infrastructure span prohibits multi-axle heavy trucks.",
+        penalty: "Structural breach risk - Mandatory bypass via Eastern Freeway"
+    },
+    {
+        type: "bridge_weight",
+        name: "Reay Road Rail Overbridge",
+        lat: 18.9730,
+        lon: 72.8420,
+        weight_limit_t: 7.5,
+        rule_details: "7.5 Tonnes Maximum Axle Rating. Heavy trucks must divert via Harbour bypass.",
+        penalty: "Weight restriction enforcement"
+    }
+];
 
 // Preset Mumbai Transport Dataset
 const MUMBAI_PRESET = {
@@ -133,6 +214,11 @@ function initMap() {
 
     state.markersLayer = L.layerGroup().addTo(state.map);
     state.routesLayer = L.layerGroup().addTo(state.map);
+    state.geofenceLayer = L.layerGroup().addTo(state.map);
+    state.barriersLayer = L.layerGroup().addTo(state.map);
+    state.bridgesLayer = L.layerGroup().addTo(state.map);
+
+    initRegulatoryLayers();
 
     state.map.on("click", (e) => {
         handleMapClick(e.latlng.lat, e.latlng.lng);
@@ -267,6 +353,32 @@ function initEventListeners() {
             }
         });
     });
+
+    // Export / Print Dispatch Manifest
+    document.getElementById("exportManifestBtn")?.addEventListener("click", () => {
+        if (!state.lastOptimizationData || !state.lastOptimizationData.routes || state.lastOptimizationData.routes.length === 0) {
+            showToast("Please calculate optimal routes first to generate the manifest.", "warning");
+            return;
+        }
+        renderManifestModal(state.lastOptimizationData);
+        document.getElementById("manifestModalBackdrop")?.classList.remove("hidden");
+    });
+
+    document.getElementById("closeManifestBtn")?.addEventListener("click", () => {
+        document.getElementById("manifestModalBackdrop")?.classList.add("hidden");
+    });
+
+    document.getElementById("manifestModalBackdrop")?.addEventListener("click", (e) => {
+        if (e.target.id === "manifestModalBackdrop") {
+            document.getElementById("manifestModalBackdrop").classList.add("hidden");
+        }
+    });
+
+    document.getElementById("printManifestBtn")?.addEventListener("click", () => {
+        window.print();
+    });
+
+    document.getElementById("downloadCsvBtn")?.addEventListener("click", downloadManifestCsv);
 }
 
 // Update Clock Display and Traffic Regulation Status
@@ -529,6 +641,7 @@ async function optimizeRoutes(autoSwitchTab = true) {
 
 // Handle Optimization Success
 function handleOptimizationSuccess(data, autoSwitchTab = true) {
+    state.lastOptimizationData = data;
     state.currentRoutes = data.routes;
     state.routesLayer.clearLayers();
 
@@ -814,3 +927,241 @@ function showToast(message, type = "info") {
         setTimeout(() => toast.remove(), 250);
     }, 3000);
 }
+
+// INITIALIZE REGULATORY MAP LAYERS
+function initRegulatoryLayers() {
+    // 1. Municipal No-Entry Geofence Polygon
+    const geofencePolygon = L.polygon(MUMBAI_GEOFENCE_COORDS, {
+        color: "#ef4444",
+        weight: 2,
+        dashArray: "6, 6",
+        fillColor: "#ef4444",
+        fillOpacity: 0.12
+    }).bindPopup(`
+        <div class="regulatory-popup">
+            <h4><i class="fa-solid fa-ban" style="color:#ef4444"></i> Greater Mumbai No-Entry Zone</h4>
+            <p><strong>Authority:</strong> Mumbai Traffic Police (Sec 115 & 116 MVA)</p>
+            <p><strong>Restricted Hours:</strong> 08:00 AM - 11:30 AM & 05:00 PM - 09:30 PM</p>
+            <p><strong>Restricted:</strong> Heavy Freight Trucks (Tata 407, Eicher, HCVs)</p>
+            <p><strong>Exempt:</strong> Delivery Vans (Tata Ace & LCVs under 3.5T GVW)</p>
+            <span class="regulatory-tag tag-geofence">Fine Risk: Rs 20,000 + Seizure</span>
+        </div>
+    `);
+    state.geofenceLayer.addLayer(geofencePolygon);
+
+    // 2. Height Barriers & Bridge Limits
+    REGULATORY_BARRIERS.forEach(barrier => {
+        if (barrier.type === "height_gantry") {
+            const icon = L.divIcon({
+                className: "regulatory-map-marker barrier-map-marker",
+                html: `<i class="fa-solid fa-arrows-up-down"></i>`,
+                iconSize: [26, 26],
+                iconAnchor: [13, 13]
+            });
+            const marker = L.marker([barrier.lat, barrier.lon], { icon }).bindPopup(`
+                <div class="regulatory-popup">
+                    <h4><i class="fa-solid fa-triangle-exclamation" style="color:#f59e0b"></i> ${barrier.name}</h4>
+                    <p><strong>Restriction:</strong> Height Clearance &le; ${barrier.height_limit_m} meters</p>
+                    <p>${barrier.rule_details}</p>
+                    <span class="regulatory-tag tag-barrier">2.5m Flyover Gantry</span>
+                </div>
+            `);
+            state.barriersLayer.addLayer(marker);
+        } else if (barrier.type === "bridge_weight") {
+            const icon = L.divIcon({
+                className: "regulatory-map-marker bridge-map-marker",
+                html: `<i class="fa-solid fa-weight-hanging"></i>`,
+                iconSize: [26, 26],
+                iconAnchor: [13, 13]
+            });
+            const marker = L.marker([barrier.lat, barrier.lon], { icon }).bindPopup(`
+                <div class="regulatory-popup">
+                    <h4><i class="fa-solid fa-triangle-exclamation" style="color:#ea580c"></i> ${barrier.name}</h4>
+                    <p><strong>Restriction:</strong> Gross Vehicle Weight &le; ${barrier.weight_limit_t} Tonnes</p>
+                    <p>${barrier.rule_details}</p>
+                    <span class="regulatory-tag tag-bridge">7.5T Bridge Limit</span>
+                </div>
+            `);
+            state.bridgesLayer.addLayer(marker);
+        }
+    });
+
+    // Layer Toggle Event Listeners
+    document.getElementById("toggleGeofence")?.addEventListener("change", (e) => {
+        if (e.target.checked) {
+            state.map.addLayer(state.geofenceLayer);
+        } else {
+            state.map.removeLayer(state.geofenceLayer);
+        }
+    });
+
+    document.getElementById("toggleBarriers")?.addEventListener("change", (e) => {
+        if (e.target.checked) {
+            state.map.addLayer(state.barriersLayer);
+        } else {
+            state.map.removeLayer(state.barriersLayer);
+        }
+    });
+
+    document.getElementById("toggleBridges")?.addEventListener("change", (e) => {
+        if (e.target.checked) {
+            state.map.addLayer(state.bridgesLayer);
+        } else {
+            state.map.removeLayer(state.bridgesLayer);
+        }
+    });
+}
+
+// RENDER COMMERCIAL DISPATCH MANIFEST MODAL
+function renderManifestModal(data) {
+    const serial = `MANIFEST-MMRDA-${Date.now().toString().slice(-6)}`;
+    document.getElementById("manifestSerialId").textContent = serial;
+
+    const departureClock = document.getElementById("clockDisplay")?.textContent || "08:30 AM";
+    const container = document.getElementById("manifestContent");
+
+    let html = `
+        <div class="manifest-header-block">
+            <div class="manifest-meta-col">
+                <strong>RouteOpt Commercial Fleet Dispatch Manifest</strong>
+                <span>Region: Mumbai Metropolitan Region (MMRDA / Police Traffic Branch)</span>
+                <span>Operating Hub: ${state.depot?.name || "Bhiwandi Central Freight Hub"}</span>
+            </div>
+            <div class="manifest-meta-col" style="text-align: right;">
+                <div class="manifest-badge-legal">
+                    <i class="fa-solid fa-shield-check"></i> Regulatory Clearance Verified
+                </div>
+                <div style="margin-top: 4px; color: #94a3b8; font-size: 11px;">
+                    Shift Departure: <strong>${departureClock}</strong>
+                </div>
+            </div>
+        </div>
+
+        <div class="summary-stat-grid" style="margin-bottom: 16px;">
+            <div class="stat-cell">
+                <span class="stat-name">Active Vehicles</span>
+                <span class="stat-digit">${data.routes.length}</span>
+            </div>
+            <div class="stat-cell">
+                <span class="stat-name">Total Fleet Distance</span>
+                <span class="stat-digit">${data.total_fleet_distance_km} km</span>
+            </div>
+            <div class="stat-cell">
+                <span class="stat-name">Estimated Shift Duration</span>
+                <span class="stat-digit">${data.total_fleet_duration_hours} hrs</span>
+            </div>
+            <div class="stat-cell">
+                <span class="stat-name">Estimated Operational Cost</span>
+                <span class="stat-digit">Rs ${Math.round(data.total_fleet_cost_inr).toLocaleString()}</span>
+            </div>
+        </div>
+    `;
+
+    data.routes.forEach((route, idx) => {
+        const isVan = route.vehicle_class === "van";
+        const classTitle = isVan ? "Delivery Van (LCV - Tata Ace)" : "Freight Truck (MCV/HCV - Tata 407)";
+        const loadKg = route.total_load_kg || 0;
+        const capacityKg = isVan ? 1200 : 4500;
+        const utilPct = Math.round((loadKg / capacityKg) * 100);
+
+        html += `
+            <div class="manifest-section-title">
+                <i class="fa-solid fa-truck" style="color:${route.color_hex}"></i>
+                Vehicle ${idx + 1}: ${route.vehicle_name} (${classTitle})
+                <span style="margin-left: auto; font-size: 11px; font-weight: normal; color: #94a3b8;">
+                    Load: ${loadKg} kg / ${capacityKg} kg (${utilPct}% Capacity) | Est. Cost: Rs ${Math.round(route.estimated_cost_inr).toLocaleString()}
+                </span>
+            </div>
+
+            <table class="manifest-table">
+                <thead>
+                    <tr>
+                        <th style="width: 35px;">#</th>
+                        <th>Stop / Waypoint Location</th>
+                        <th style="width: 85px;">Arrival</th>
+                        <th style="width: 70px;">Dwell</th>
+                        <th style="width: 85px;">Drop Load</th>
+                        <th style="width: 85px;">Remaining</th>
+                        <th style="width: 120px;">Compliance</th>
+                    </tr>
+                </thead>
+                <tbody>
+        `;
+
+        (route.stops_visited || []).forEach((stop, sIdx) => {
+            const isDepot = sIdx === 0 || sIdx === route.stops_visited.length - 1;
+            const dropKg = isDepot ? "-" : `${stop.current_load_kg || 0} kg`;
+            html += `
+                <tr>
+                    <td>${sIdx + 1}</td>
+                    <td><strong>${stop.name}</strong></td>
+                    <td>${stop.clock_time_str || "-"}</td>
+                    <td>${isDepot ? "Hub Start" : `${Math.round(stop.waiting_time_sec / 60) || 5} min`}</td>
+                    <td>${dropKg}</td>
+                    <td>${stop.current_load_kg} kg</td>
+                    <td><span style="color: #4ade80;"><i class="fa-solid fa-check"></i> Compliant</span></td>
+                </tr>
+            `;
+        });
+
+        html += `
+                </tbody>
+            </table>
+        `;
+    });
+
+    html += `
+        <div class="manifest-signatures">
+            <div class="sig-box">
+                Driver Signature / Registration
+            </div>
+            <div class="sig-box">
+                Transport Supervisor Sign-Off
+            </div>
+            <div class="sig-box">
+                Regional Gate Clearance Stamp
+            </div>
+        </div>
+    `;
+
+    container.innerHTML = html;
+}
+
+// DOWNLOAD DISPATCH MANIFEST CSV
+function downloadManifestCsv() {
+    if (!state.lastOptimizationData || !state.lastOptimizationData.routes) {
+        showToast("No active route manifest data to export.", "warning");
+        return;
+    }
+
+    const headers = ["Vehicle ID", "Vehicle Name", "Class", "Stop Seq", "Stop Name", "Arrival Clock Time", "Drop Demand Kg", "Total Load Kg"];
+    const rows = [headers.join(",")];
+
+    state.lastOptimizationData.routes.forEach(route => {
+        (route.stops_visited || []).forEach((stop, idx) => {
+            const cleanName = `"${stop.name.replace(/"/g, '""')}"`;
+            rows.push([
+                route.vehicle_id,
+                `"${route.vehicle_name}"`,
+                route.vehicle_class,
+                idx + 1,
+                cleanName,
+                stop.clock_time_str || "",
+                stop.current_load_kg || 0,
+                route.total_load_kg || 0
+            ].join(","));
+        });
+    });
+
+    const csvContent = rows.join("\n");
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", `RouteOpt_Dispatch_Manifest_${Date.now()}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    showToast("Downloaded Dispatch Manifest CSV.", "success");
+}
+
