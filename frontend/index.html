@@ -35,17 +35,17 @@
 
             <!-- Navigation Tabs -->
             <nav class="sidebar-nav">
-                <button class="nav-tab active" data-tab="dispatch">
-                    <i class="fa-solid fa-clipboard-list"></i> Dispatch Planning
+                <button class="nav-tab active" data-tab="dispatch" title="Dispatch Planning">
+                    <i class="fa-solid fa-clipboard-list"></i> Dispatch
                 </button>
-                <button class="nav-tab" data-tab="simulation">
-                    <i class="fa-solid fa-sliders"></i> Route Simulation
+                <button class="nav-tab" data-tab="manager" id="managerTabBtn" disabled title="Fleet Manager Executive Dashboard">
+                    <i class="fa-solid fa-chart-line"></i> Manager
                 </button>
-                <button class="nav-tab" data-tab="itinerary" id="itineraryTabBtn" disabled>
-                    <i class="fa-solid fa-route"></i> Driver Itinerary
+                <button class="nav-tab" data-tab="driver" id="driverTabBtn" disabled title="Driver Delivery Turn-by-Turn HUD">
+                    <i class="fa-solid fa-truck"></i> Driver HUD
                 </button>
-                <button class="nav-tab" data-tab="rules">
-                    <i class="fa-solid fa-book"></i> City Traffic Rules
+                <button class="nav-tab" data-tab="simulation" title="AI Road Simulator & Regulations">
+                    <i class="fa-solid fa-bolt"></i> AI Simulate
                 </button>
             </nav>
 
@@ -167,13 +167,11 @@
                     </div>
 
                     <!-- Action Buttons -->
+                    <!-- Action Buttons -->
                     <div class="action-footer">
                         <button class="btn btn-primary" id="optimizeBtn" disabled>
                             <i class="fa-solid fa-check"></i>
                             <span id="optimizeBtnText">Calculate Optimal Routes</span>
-                        </button>
-                        <button class="btn btn-secondary" id="directSimBtn" title="Calculate and animate driver route directly">
-                            <i class="fa-solid fa-play"></i> Start Simulation
                         </button>
                         <button class="btn btn-outline" id="clearBtn" title="Reset all stops">
                             <i class="fa-solid fa-rotate-left"></i> Reset
@@ -181,24 +179,186 @@
                     </div>
                 </section>
 
-                <!-- Tab 2: Route Simulation -->
+                <!-- Tab 2: Fleet Manager Executive Dashboard -->
+                <section class="tab-pane" id="tab-manager">
+                    <div class="card">
+                        <div class="card-header">
+                            <span class="card-title"><i class="fa-solid fa-chart-pie text-primary"></i> Operations & ESG Overview</span>
+                            <span class="badge badge-success" id="managerStatusBadge">Fleet Ready</span>
+                        </div>
+                        <div class="manager-kpi-grid">
+                            <div class="kpi-cell">
+                                <span class="kpi-label">Operational Cost</span>
+                                <strong class="kpi-val text-primary" id="managerCost">₹0</strong>
+                                <span class="kpi-sub" id="managerCostSub">Fixed + Fuel Cost</span>
+                            </div>
+                            <div class="kpi-cell">
+                                <span class="kpi-label">Capacity Utilized</span>
+                                <strong class="kpi-val text-success" id="managerUtilization">0%</strong>
+                                <span class="kpi-sub" id="managerLoadSub">0 / 0 kg cargo</span>
+                            </div>
+                            <div class="kpi-cell">
+                                <span class="kpi-label">CO₂ Prevented (ESG)</span>
+                                <strong class="kpi-val text-emerald" id="managerCo2">0.0 kg</strong>
+                                <span class="kpi-sub">Optimized vs Detours</span>
+                            </div>
+                            <div class="kpi-cell">
+                                <span class="kpi-label">Legal Fine Risk</span>
+                                <strong class="kpi-val text-success" id="managerLegalRisk">₹0 Risk</strong>
+                                <span class="kpi-sub">100% City Compliant</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Fleet Allocation Matrix -->
+                    <div class="card">
+                        <div class="card-header">
+                            <span class="card-title"><i class="fa-solid fa-truck-ramp-box"></i> Fleet Allocation Matrix</span>
+                            <span class="badge" id="managerActiveCount">0 Active</span>
+                        </div>
+                        <div class="fleet-matrix-wrapper">
+                            <table class="fleet-matrix-table" id="managerFleetTable">
+                                <thead>
+                                    <tr>
+                                        <th>Vehicle</th>
+                                        <th>Class</th>
+                                        <th>Stops</th>
+                                        <th>Payload</th>
+                                        <th>Est. Cost</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="managerFleetTbody">
+                                    <tr><td colspan="5" style="text-align:center; color:#94a3b8; padding:12px;">Calculate routes to populate fleet table.</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Fleet Trade-off Comparison Widget (1 Heavy Truck vs 3 Delivery Vans) -->
+                    <div class="card trade-off-card">
+                        <div class="card-header">
+                            <span class="card-title"><i class="fa-solid fa-scale-balanced text-primary"></i> Fleet Trade-off Analyzer</span>
+                            <span class="trade-off-badge">1 Truck vs 3 Vans</span>
+                        </div>
+                        <p class="field-hint">Cost and time trade-off between 1 Heavy Truck (Tata 407) vs. 3 Nimble Delivery Vans (Tata Ace) under municipal peak bans:</p>
+
+                        <div class="trade-off-table-wrapper">
+                            <table class="trade-off-table">
+                                <thead>
+                                    <tr>
+                                        <th>Metric</th>
+                                        <th>1 Heavy Truck</th>
+                                        <th>3 Delivery Vans</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td><strong>Fuel & Wage Cost</strong></td>
+                                        <td class="text-success">₹1,850 (Lower)</td>
+                                        <td class="text-amber">₹2,320 (+₹470)</td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>No-Entry Delay</strong></td>
+                                        <td class="text-danger"><strong>+4.5 hrs</strong> (Banned outside city)</td>
+                                        <td class="text-success"><strong>0 min</strong> (Exempt from city ban)</td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>Police Fine Risk</strong></td>
+                                        <td class="text-danger"><strong>₹20,000 fine</strong> (Sec 115 MVA)</td>
+                                        <td class="text-success"><strong>₹0</strong> (100% Legal Exemption)</td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>Flyover Gantries</strong></td>
+                                        <td class="text-amber">Bypasses flyovers (2.5m limit)</td>
+                                        <td class="text-success">Direct route over flyovers</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="trade-off-verdict">
+                            <i class="fa-solid fa-circle-check text-success"></i>
+                            <span id="tradeOffRecommendationText"><strong>Dispatch Strategy:</strong> Using 3 Tata Ace delivery vans eliminates fine liabilities and completes deliveries faster during peak hours.</span>
+                        </div>
+                    </div>
+
+                    <!-- Manager Report Actions -->
+                    <div class="manager-actions-row">
+                        <button class="btn btn-secondary btn-block" id="exportManifestBtn">
+                            <i class="fa-solid fa-file-invoice"></i> Export & Print Dispatch Manifest
+                        </button>
+                        <button class="btn btn-outline btn-block" id="downloadCsvBtnQuick">
+                            <i class="fa-solid fa-file-csv"></i> Download Dispatch Manifest CSV
+                        </button>
+                    </div>
+                </section>
+
+                <!-- Tab 3: Driver Turn-by-Turn Delivery HUD -->
+                <section class="tab-pane" id="tab-driver">
+                    <!-- Driver Vehicle Switcher -->
+                    <div class="card driver-selector-card">
+                        <div class="card-header">
+                            <span class="card-title"><i class="fa-solid fa-id-badge text-primary"></i> Assigned Driver & Vehicle</span>
+                        </div>
+                        <div class="driver-select-group">
+                            <label for="driverVehicleSelect">Select Driver Route:</label>
+                            <select id="driverVehicleSelect" class="driver-vehicle-select">
+                                <option value="">-- Choose Assigned Vehicle --</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Next Stop Focus Card -->
+                    <div class="next-stop-hero-card" id="driverNextStopCard">
+                        <div class="next-stop-header">
+                            <span class="next-stop-badge">NEXT DESTINATION</span>
+                            <span class="next-stop-clock" id="driverNextTime">--:--</span>
+                        </div>
+                        <h3 class="next-stop-name" id="driverNextName">Warehouse Hub (Depot)</h3>
+                        <div class="next-stop-meta" id="driverNextMeta">Calculate routes to begin turn-by-turn navigation.</div>
+                        <div class="next-stop-actions">
+                            <button class="btn btn-success btn-block" id="btnMarkCurrentDelivered">
+                                <i class="fa-solid fa-circle-check"></i> Mark Stop as Completed / Delivered
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Shift Progress Meter -->
+                    <div class="card driver-progress-card">
+                        <div class="progress-info-row">
+                            <span>Delivery Route Progress:</span>
+                            <strong id="driverProgressRatio">0 / 0 Completed</strong>
+                        </div>
+                        <div class="progress-bar-track">
+                            <div class="progress-bar-fill" id="driverProgressBar" style="width: 0%;"></div>
+                        </div>
+                    </div>
+
+                    <!-- Turn-by-Turn Waypoints Checklist -->
+                    <div class="card">
+                        <div class="card-header">
+                            <span class="card-title"><i class="fa-solid fa-list-check"></i> Turn-by-Turn Waypoints</span>
+                            <span class="badge" id="driverTotalDrops">0 Drops</span>
+                        </div>
+                        <div class="driver-checklist-container" id="driverChecklistContainer">
+                            <p style="font-size: 11px; color: #94a3b8; text-align: center; padding: 12px 0;">No active driver route selected.</p>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Tab 4: AI What-If Simulator & City Rules -->
                 <section class="tab-pane" id="tab-simulation">
-                    
                     <!-- Custom Situation Input Card -->
                     <div class="card custom-scenario-box">
                         <div class="card-header">
                             <span class="card-title"><i class="fa-solid fa-pen-to-square"></i> Custom Problem / Situation</span>
                         </div>
-                        <p class="field-hint">Type any real-world delay, breakdown, customer change, or road rule question (or click an example below):</p>
+                        <p class="field-hint">Type any real-world delay, breakdown, customer change, or road rule question (or click a local situation below):</p>
                         
-                        <div class="custom-prompt-chips" style="display:flex; flex-wrap:wrap; gap:6px; margin-bottom:8px;">
-                            <button type="button" class="chip-btn" data-text="Truck delayed at Dadar market for 45 mins due to rain. Will it miss the 5:00 PM entry ban, or should we shift parcels into a Tata Ace van?">45m Rain Delay at Dadar</button>
-                            <button type="button" class="chip-btn" data-text="Overhead flyover height barrier is 2.5 meters. Can our Tata 407 truck cross or will it hit the steel gantry?">Flyover 2.5m Barrier Detour</button>
-                            <button type="button" class="chip-btn" data-text="Mulund checkpost has surprise police inspection. Expected delay is 90 mins with 1 truck and 2 vans. What is our revised delivery timeline?">Police Inspection at Mulund</button>
-                            <button type="button" class="chip-btn" data-text="Customer at BKC requested delivery after 3:00 PM only. Can Tata Ace van reschedule without missing warehouse return time?">BKC Late Delivery Window</button>
+                        <div class="custom-prompt-chips" id="customPromptChipsContainer" style="display:flex; flex-wrap:wrap; gap:6px; margin-bottom:8px;">
+                            <!-- Populated dynamically based on active city -->
                         </div>
 
-                        <textarea id="customSituationInput" rows="3" class="custom-textarea" placeholder="Example: Truck delayed at Dadar market for 45 mins due to rain. Will it miss the 5:00 PM entry ban, or should we shift parcels into a Tata Ace van?"></textarea>
+                        <textarea id="customSituationInput" rows="3" class="custom-textarea" placeholder="Type a road problem or choose a local situation above..."></textarea>
                         
                         <button class="btn btn-primary btn-block" id="runCustomSimulationBtn" style="margin-top: 8px;">
                             <i class="fa-solid fa-bolt"></i> Analyze Custom Problem with AI
@@ -211,8 +371,8 @@
                         <div class="scenario-card active" data-scenario="BORDER_ENTRY_DELAY">
                             <div class="scenario-radio"><i class="fa-solid fa-circle-dot"></i></div>
                             <div class="scenario-body">
-                                <strong>Toll Checkpost Delay (Hits 5:00 PM No-Entry Ban)</strong>
-                                <span>Truck is delayed 60 mins at Thane toll, reaching Mumbai at 5:20 PM during the evening ban.</span>
+                                <strong>Toll Checkpost Delay (Hits No-Entry Ban)</strong>
+                                <span id="presetDescDelay">Truck is delayed 60 mins at toll border, reaching city limits during the evening ban window.</span>
                             </div>
                         </div>
 
@@ -220,7 +380,7 @@
                             <div class="scenario-radio"><i class="fa-regular fa-circle"></i></div>
                             <div class="scenario-body">
                                 <strong>Vehicle Swap: 1 Big Truck replaced by 3 Tata Ace Vans</strong>
-                                <span>Check the cost and time trade-off of using 3 small vans to bypass all city truck bans.</span>
+                                <span>Check the cost and time trade-off of using 3 small delivery vans to bypass all city truck bans.</span>
                             </div>
                         </div>
 
@@ -280,127 +440,15 @@
                             <div class="guidance-title"><i class="fa-solid fa-arrow-right"></i> What To Do:</div>
                             <p id="simActionText">Hold at outer hub or shift cargo to delivery vans.</p>
                         </div>
-
-                        <div style="margin-top: 12px;">
-                            <button class="btn btn-primary btn-block" id="simWatchDriverBtn">
-                                <i class="fa-solid fa-play"></i> Watch Driver Movement on Map
-                            </button>
-                        </div>
                     </div>
-                </section>
 
-                <!-- Tab 3: Driver Itinerary -->
-                <section class="tab-pane" id="tab-itinerary">
-                    <div class="card">
+                    <!-- Regional Commercial Transport Rules Document (Embedded) -->
+                    <div class="card" style="margin-top: 14px;">
                         <div class="card-header">
-                            <span class="card-title"><i class="fa-solid fa-chart-pie"></i> Shift Summary</span>
+                            <span class="card-title"><i class="fa-solid fa-book text-primary"></i> Municipal Road Regulations</span>
                         </div>
-                        <div class="itinerary-summary-grid">
-                            <div class="summary-cell">
-                                <span class="cell-label">Total Distance</span>
-                                <strong class="cell-value" id="summaryDistance">0.0 km</strong>
-                            </div>
-                            <div class="summary-cell">
-                                <span class="cell-label">Total Time</span>
-                                <strong class="cell-value" id="summaryDuration">0.0 hrs</strong>
-                            </div>
-                            <div class="summary-cell">
-                                <span class="cell-label">Estimated Cost</span>
-                                <strong class="cell-value" id="summaryCost">Rs 0</strong>
-                            </div>
-                            <div class="summary-cell">
-                                <span class="cell-label">Active Vehicles</span>
-                                <strong class="cell-value" id="summaryVehicles">0</strong>
-                            </div>
-                        </div>
-
-                        <div style="margin-top: 12px; display: flex; flex-direction: column; gap: 8px;">
-                            <button class="btn btn-primary btn-block" id="itineraryPlayAnimBtn">
-                                <i class="fa-solid fa-play"></i> Start Driver Route Animation on Map
-                            </button>
-                            <button class="btn btn-secondary btn-block" id="exportManifestBtn">
-                                <i class="fa-solid fa-file-invoice"></i> Export & Print Dispatch Manifest
-                            </button>
-                        </div>
-                    </div>
-
-                    <!-- Fleet Trade-off Comparison Widget (1 Heavy Truck vs 3 Delivery Vans) -->
-                    <div class="card trade-off-card">
-                        <div class="card-header">
-                            <span class="card-title"><i class="fa-solid fa-scale-balanced text-primary"></i> Fleet Trade-off Analyzer</span>
-                            <span class="trade-off-badge">1 Truck vs 3 Vans</span>
-                        </div>
-                        <p class="field-hint">Cost and time trade-off between 1 Heavy Truck (Tata 407) vs. 3 Nimble Delivery Vans (Tata Ace) under municipal peak bans:</p>
-
-                        <div class="trade-off-table-wrapper">
-                            <table class="trade-off-table">
-                                <thead>
-                                    <tr>
-                                        <th>Metric</th>
-                                        <th>1 Heavy Truck</th>
-                                        <th>3 Delivery Vans</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <tr>
-                                        <td><strong>Fuel & Wage Cost</strong></td>
-                                        <td class="text-success">₹1,850 (Lower)</td>
-                                        <td class="text-amber">₹2,320 (+₹470)</td>
-                                    </tr>
-                                    <tr>
-                                        <td><strong>No-Entry Delay</strong></td>
-                                        <td class="text-danger"><strong>+4.5 hrs</strong> (Banned outside city)</td>
-                                        <td class="text-success"><strong>0 min</strong> (Exempt from city ban)</td>
-                                    </tr>
-                                    <tr>
-                                        <td><strong>Police Fine Risk</strong></td>
-                                        <td class="text-danger"><strong>₹20,000 fine</strong> (Sec 115 MVA)</td>
-                                        <td class="text-success"><strong>₹0</strong> (100% Legal Exemption)</td>
-                                    </tr>
-                                    <tr>
-                                        <td><strong>Flyover Gantries</strong></td>
-                                        <td class="text-amber">Bypasses flyovers (2.5m limit)</td>
-                                        <td class="text-success">Direct route over flyovers</td>
-                                    </tr>
-                                </tbody>
-                            </table>
-                        </div>
-                        <div class="trade-off-verdict">
-                            <i class="fa-solid fa-circle-check text-success"></i>
-                            <span id="tradeOffRecommendationText"><strong>Dispatch Strategy:</strong> Using 3 Tata Ace delivery vans eliminates the ₹20,000 fine liability and finishes deliveries 4.5 hours earlier during peak hours despite ₹470 higher vehicle fuel cost.</span>
-                        </div>
-                    </div>
-
-                    <div class="routes-container" id="routesContainer">
-                        <!-- Vehicle route cards rendered by app.js -->
-                    </div>
-                </section>
-
-                <!-- Tab 4: City Traffic Rules -->
-                <section class="tab-pane" id="tab-rules">
-                    <div class="rules-document">
-                        <h2>Mumbai Regional Commercial Transport Rules</h2>
-                        <p class="rules-subtitle">Reference guide for drivers and dispatchers</p>
-                        
-                        <div class="rule-box">
-                            <h3>1. Heavy Commercial Vehicle Peak-Hour No-Entry</h3>
-                            <p>Under Section 115 and 116 of the Motor Vehicles Act, heavy goods trucks (such as Tata 407, Eicher Pro, and multi-axle trucks) are prohibited from entering urban roads during peak traffic hours:</p>
-                            <ul>
-                                <li><strong>Morning Window:</strong> 08:00 AM to 11:30 AM</li>
-                                <li><strong>Evening Window:</strong> 05:00 PM to 09:30 PM</li>
-                                <li><strong>Vehicles Exempt:</strong> Small delivery vans under 3.5 tonnes GVW (such as Tata Ace, Mahindra Bolero, Ashok Leyland Dost).</li>
-                                <li><strong>Violation Penalty:</strong> Minimum fine of Rs 20,000 and vehicle seizure.</li>
-                            </ul>
-                        </div>
-
-                        <div class="rule-box">
-                            <h3>2. Flyover Height Barrier Limits</h3>
-                            <p>Most urban flyovers have overhead steel gantries fixed at a height of <strong>2.5 meters</strong>. Freight trucks exceeding 2.5 meters must take ground-level junction roads, which adds roughly 30% to travel time.</p>
-                        </div>
-
-                        <div class="rule-box">
-                            <h3>3. Bridge Weight Load Limits</h3>
-                            <p>Older arterial bridges restrict vehicles weighing more than <strong>7.5 Tonnes Gross Vehicle Weight</strong>. Heavy freight must take the peripheral bypass corridors.</p>
+                        <div class="rules-document" id="cityRulesDocument">
+                            <!-- Populated dynamically by app.js based on active city -->
                         </div>
                     </div>
                 </section>

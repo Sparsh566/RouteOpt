@@ -1631,4 +1631,293 @@ body {
     margin-top: 6px;
 }
 
+/* ==========================================================================
+   FLEET MANAGER EXECUTIVE DASHBOARD
+   ========================================================================== */
+.manager-kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+    margin-top: 6px;
+}
+
+.kpi-cell {
+    background-color: var(--bg-card-subtle);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius);
+    padding: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.kpi-label {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--text-muted);
+    font-weight: 600;
+}
+
+.kpi-val {
+    font-size: 17px;
+    font-weight: 700;
+    font-family: var(--font-mono);
+}
+
+.kpi-sub {
+    font-size: 10px;
+    color: #94a3b8;
+}
+
+.text-emerald { color: #34d399 !important; }
+
+.fleet-matrix-wrapper {
+    overflow-x: auto;
+    margin-top: 6px;
+}
+
+.fleet-matrix-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 11px;
+}
+
+.fleet-matrix-table th {
+    background-color: #1e293b;
+    color: #94a3b8;
+    text-align: left;
+    padding: 6px 8px;
+    font-size: 10px;
+    text-transform: uppercase;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.fleet-matrix-table td {
+    padding: 7px 8px;
+    border-bottom: 1px solid rgba(51, 65, 85, 0.5);
+    color: #e2e8f0;
+}
+
+.fleet-matrix-table tr:hover td {
+    background-color: rgba(30, 41, 59, 0.5);
+}
+
+.manager-actions-row {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-top: 12px;
+}
+
+/* ==========================================================================
+   DRIVER TURN-BY-TURN DELIVERY HUD
+   ========================================================================== */
+.driver-selector-card {
+    background-color: #172554;
+    border-color: #2563eb;
+}
+
+.driver-select-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.driver-select-group label {
+    font-size: 11px;
+    color: #93c5fd;
+    font-weight: 600;
+}
+
+.driver-vehicle-select {
+    width: 100%;
+    background-color: #0f172a;
+    border: 1px solid #3b82f6;
+    color: #ffffff;
+    font-size: 12px;
+    padding: 8px 10px;
+    border-radius: var(--radius);
+    outline: none;
+    font-weight: 600;
+}
+
+.next-stop-hero-card {
+    background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+    border: 2px solid #38bdf8;
+    border-radius: var(--radius);
+    padding: 14px;
+    position: relative;
+    box-shadow: 0 4px 14px rgba(56, 189, 248, 0.15);
+}
+
+.next-stop-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 6px;
+}
+
+.next-stop-badge {
+    background-color: #0284c7;
+    color: #ffffff;
+    font-size: 10px;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 4px;
+    letter-spacing: 0.5px;
+}
+
+.next-stop-clock {
+    font-family: var(--font-mono);
+    font-size: 13px;
+    font-weight: 700;
+    color: #38bdf8;
+}
+
+.next-stop-name {
+    font-size: 15px;
+    font-weight: 700;
+    color: #ffffff;
+    margin-bottom: 4px;
+}
+
+.next-stop-meta {
+    font-size: 11px;
+    color: #94a3b8;
+    line-height: 1.4;
+    margin-bottom: 12px;
+}
+
+.driver-progress-card {
+    padding: 10px 12px;
+}
+
+.progress-info-row {
+    display: flex;
+    justify-content: space-between;
+    font-size: 11px;
+    color: #94a3b8;
+    margin-bottom: 6px;
+}
+
+.progress-info-row strong {
+    color: #38bdf8;
+    font-family: var(--font-mono);
+}
+
+.progress-bar-track {
+    width: 100%;
+    height: 8px;
+    background-color: #1e293b;
+    border-radius: 999px;
+    overflow: hidden;
+}
+
+.progress-bar-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #2563eb, #38bdf8);
+    transition: width 0.3s ease;
+}
+
+.driver-checklist-container {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-top: 6px;
+}
+
+.driver-step-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 10px;
+    background-color: var(--bg-card-subtle);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius);
+    transition: all 0.15s ease;
+    cursor: pointer;
+}
+
+.driver-step-row:hover {
+    border-color: #38bdf8;
+    background-color: #1e293b;
+}
+
+.driver-step-row.step-completed {
+    opacity: 0.6;
+    background-color: rgba(30, 41, 59, 0.4);
+    text-decoration: none;
+}
+
+.driver-step-row.step-active {
+    border-color: #38bdf8;
+    background-color: rgba(56, 189, 248, 0.08);
+}
+
+.step-num-badge {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background-color: #1e293b;
+    border: 1px solid #475569;
+    color: #94a3b8;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
+    font-weight: 700;
+    flex-shrink: 0;
+}
+
+.driver-step-row.step-completed .step-num-badge {
+    background-color: #15803d;
+    border-color: #22c55e;
+    color: #ffffff;
+}
+
+.driver-step-row.step-active .step-num-badge {
+    background-color: #0284c7;
+    border-color: #38bdf8;
+    color: #ffffff;
+}
+
+.step-details {
+    flex-grow: 1;
+    min-width: 0;
+}
+
+.step-name {
+    font-size: 12px;
+    font-weight: 600;
+    color: #ffffff;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.step-meta {
+    font-size: 10px;
+    color: #94a3b8;
+}
+
+.btn-step-check {
+    background: none;
+    border: none;
+    color: #64748b;
+    font-size: 15px;
+    cursor: pointer;
+    padding: 4px;
+    transition: color 0.15s ease;
+}
+
+.btn-step-check:hover {
+    color: #22c55e;
+}
+
+.btn-step-check.checked {
+    color: #22c55e;
+}
+
+
 

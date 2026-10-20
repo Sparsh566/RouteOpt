@@ -31,7 +31,11 @@ const state = {
     // Animation tracking
     animationMarkers: [],
     animationIntervals: [],
-    isAnimating: false
+    isAnimating: false,
+
+    // Fleet Manager & Driver HUD state
+    activeDriverVehicleId: null,
+    driverDeliveredStops: {}
 };
 
 // Mumbai Metropolitan Regulatory Geofence (Greater Mumbai Urban Core)
@@ -660,6 +664,53 @@ function updateQuickHubDropdown() {
     select.innerHTML = html;
 }
 
+// City-Aware Dynamic AI Simulation Prompt Chips
+const CITY_PROMPT_CHIPS = {
+    NAGPUR_NMC: [
+        { label: "Cotton Market Queue", text: "Cotton Market truck queue: 45 min unloading delay at Central Avenue" },
+        { label: "Sitabuldi Metro Gantry", text: "Sitabuldi Metro gantry: 2.5m limit requires Wardha Rd detour" },
+        { label: "Wadi Checkpost Delay", text: "Wadi Octroi checkpost freight congestion: 40 min waiting time" },
+        { label: "Itwari Peak Window", text: "Itwari wholesale market: deliver before 11:30 AM peak restriction" }
+    ],
+    PUNE_PMC: [
+        { label: "Swargate Gridlock", text: "Swargate junction peak gridlock: 50 min truck delay" },
+        { label: "Lakdi Pul Weight Limit", text: "Lakdi Pul weight limit: 5.0T restriction requires bypass" },
+        { label: "Chakan Toll Delay", text: "Chakan MIDC toll queue: 35 min transport delay" },
+        { label: "Shivajinagar Ban", text: "Shivajinagar core market: deliver before 09:00 AM peak ban" }
+    ],
+    MUMBAI_MMRDA: [
+        { label: "Dadar Flyover Rain", text: "Dadar TT flyover waterlogging: 45 min delay on south corridor" },
+        { label: "2.5m Height Gantry", text: "2.5m flyover height gantry: Tata 407 diverted to surface road" },
+        { label: "Mulund Checkpost", text: "Mulund transport checkpost: 60 min commercial truck inspection" },
+        { label: "BKC Dock Window", text: "BKC customer dock requested priority delivery before 11:00 AM" }
+    ]
+};
+
+function renderDynamicPromptChips() {
+    const container = document.getElementById("customPromptChipsContainer");
+    if (!container) return;
+
+    const chips = CITY_PROMPT_CHIPS[state.selectedRegion] || CITY_PROMPT_CHIPS.MUMBAI_MMRDA;
+    container.innerHTML = "";
+
+    chips.forEach(chip => {
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "chip-btn";
+        btn.dataset.text = chip.text;
+        btn.innerHTML = `<i class="fa-solid fa-lightbulb"></i> ${chip.label}`;
+        btn.addEventListener("click", () => {
+            const textarea = document.getElementById("customSituationInput");
+            if (textarea) {
+                textarea.value = chip.text;
+                textarea.focus();
+                showToast(`Loaded situation: "${chip.label}"`, "info");
+            }
+        });
+        container.appendChild(btn);
+    });
+}
+
 // Initialize Application
 document.addEventListener("DOMContentLoaded", () => {
     initMap();
@@ -667,6 +718,7 @@ document.addEventListener("DOMContentLoaded", () => {
     updateClockDisplay(state.departureHour);
     updateFleetSummary();
     updateQuickHubDropdown();
+    renderDynamicPromptChips();
     updateRulesTabContent();
     loadDatasetScale(6);
 });
@@ -760,6 +812,7 @@ function initEventListeners() {
             refreshRegulatoryLayers();
             updateClockDisplay(state.departureHour);
             updateQuickHubDropdown();
+            renderDynamicPromptChips();
             updateRulesTabContent();
             loadDatasetScale(6);
             const regionLabel = state.selectedRegion === "NAGPUR_NMC" 
@@ -826,7 +879,8 @@ function initEventListeners() {
         stopRouteAnimation();
         state.currentRoutes = [];
         state.routesLayer.clearLayers();
-        document.getElementById("itineraryTabBtn").disabled = true;
+        if (document.getElementById("managerTabBtn")) document.getElementById("managerTabBtn").disabled = true;
+        if (document.getElementById("driverTabBtn")) document.getElementById("driverTabBtn").disabled = true;
         document.getElementById("mapMetricsBar").classList.add("hidden");
         document.getElementById("mapAnimBar").classList.add("hidden");
 
@@ -876,14 +930,6 @@ function initEventListeners() {
         runSimulationRequest(customText);
     });
 
-    // Direct Start Simulation Button in Dispatch tab
-    document.getElementById("directSimBtn")?.addEventListener("click", async () => {
-        if (!state.currentRoutes || state.currentRoutes.length === 0) {
-            await optimizeRoutes();
-        }
-        startRouteAnimation();
-    });
-
     // Watch Driver Movement button inside Simulation Result card
     document.getElementById("simWatchDriverBtn")?.addEventListener("click", async () => {
         if (!state.currentRoutes || state.currentRoutes.length === 0) {
@@ -896,13 +942,6 @@ function initEventListeners() {
     // Animation Controls
     document.getElementById("startMapAnimBtn").addEventListener("click", startRouteAnimation);
     document.getElementById("stopMapAnimBtn").addEventListener("click", stopRouteAnimation);
-    document.getElementById("itineraryPlayAnimBtn")?.addEventListener("click", async () => {
-        if (!state.currentRoutes || state.currentRoutes.length === 0) {
-            await optimizeRoutes();
-        }
-        startRouteAnimation();
-        showToast("Switched to map view. Driver route animation started.", "info");
-    });
 
     // Speed Controls (1x, 2x, 4x)
     document.querySelectorAll(".btn-speed").forEach(btn => {
@@ -914,6 +953,18 @@ function initEventListeners() {
                 startRouteAnimation();
             }
         });
+    });
+
+    // Driver HUD Event Listeners
+    document.getElementById("driverVehicleSelect")?.addEventListener("change", (e) => {
+        state.activeDriverVehicleId = e.target.value;
+        if (state.lastOptimizationData) {
+            renderDriverHUD(state.lastOptimizationData, state.activeDriverVehicleId);
+        }
+    });
+
+    document.getElementById("btnMarkCurrentDelivered")?.addEventListener("click", () => {
+        markCurrentStopDelivered();
     });
 
     // Export / Print Dispatch Manifest
@@ -941,6 +992,7 @@ function initEventListeners() {
     });
 
     document.getElementById("downloadCsvBtn")?.addEventListener("click", downloadManifestCsv);
+    document.getElementById("downloadCsvBtnQuick")?.addEventListener("click", downloadManifestCsv);
 }
 
 // Update Clock Display and Traffic Regulation Status
@@ -1020,7 +1072,8 @@ function loadDatasetScale(scale = 6) {
     stopRouteAnimation();
     state.currentRoutes = [];
     state.routesLayer.clearLayers();
-    document.getElementById("itineraryTabBtn").disabled = true;
+    if (document.getElementById("managerTabBtn")) document.getElementById("managerTabBtn").disabled = true;
+    if (document.getElementById("driverTabBtn")) document.getElementById("driverTabBtn").disabled = true;
     document.getElementById("mapMetricsBar").classList.add("hidden");
     document.getElementById("mapAnimBar").classList.add("hidden");
 
@@ -1085,7 +1138,8 @@ function removeStopByIndex(index) {
     stopRouteAnimation();
     state.currentRoutes = [];
     state.routesLayer.clearLayers();
-    document.getElementById("itineraryTabBtn").disabled = true;
+    if (document.getElementById("managerTabBtn")) document.getElementById("managerTabBtn").disabled = true;
+    if (document.getElementById("driverTabBtn")) document.getElementById("driverTabBtn").disabled = true;
     document.getElementById("mapMetricsBar").classList.add("hidden");
     document.getElementById("mapAnimBar").classList.add("hidden");
 
@@ -1106,7 +1160,8 @@ function clearAll() {
     state.routesLayer.clearLayers();
     renderLocationsList();
     updateFleetSummary();
-    document.getElementById("itineraryTabBtn").disabled = true;
+    if (document.getElementById("managerTabBtn")) document.getElementById("managerTabBtn").disabled = true;
+    if (document.getElementById("driverTabBtn")) document.getElementById("driverTabBtn").disabled = true;
     document.getElementById("mapMetricsBar").classList.add("hidden");
     document.getElementById("mapAnimBar").classList.add("hidden");
     showToast("Reset all locations", "warning");
@@ -1386,62 +1441,267 @@ function handleOptimizationSuccess(data, autoSwitchTab = true) {
         tradeOffText.innerHTML = `<strong>Dispatch Strategy (${regionName}):</strong> Using 3 Tata Ace delivery vans eliminates the ${fineRisk} fine liability and completes deliveries ${delayHours} hours faster during peak windows despite ₹470 higher vehicle fuel cost.`;
     }
 
-    renderItineraryTab(data);
+    renderManagerDashboard(data);
+    renderDriverHUD(data);
 
-    const itineraryTabBtn = document.getElementById("itineraryTabBtn");
-    itineraryTabBtn.disabled = false;
-    if (autoSwitchTab) {
-        itineraryTabBtn.click();
+    const managerTabBtn = document.getElementById("managerTabBtn");
+    const driverTabBtn = document.getElementById("driverTabBtn");
+    if (managerTabBtn) managerTabBtn.disabled = false;
+    if (driverTabBtn) driverTabBtn.disabled = false;
+
+    if (autoSwitchTab && managerTabBtn) {
+        managerTabBtn.click();
     }
 
     showToast(`Optimal routes calculated in ${data.solve_duration_ms} ms`, "success");
 }
 
-// Render Driver Itinerary Tab
-function renderItineraryTab(data) {
-    document.getElementById("summaryDistance").textContent = `${data.total_fleet_distance_km} km`;
-    document.getElementById("summaryDuration").textContent = `${data.total_fleet_duration_hours} hrs`;
-    document.getElementById("summaryCost").textContent = `Rs ${Math.round(data.total_fleet_cost_inr).toLocaleString()}`;
-    document.getElementById("summaryVehicles").textContent = data.routes.length;
+// RENDER FLEET MANAGER EXECUTIVE DASHBOARD
+function renderManagerDashboard(data) {
+    if (!data || !data.routes) return;
 
-    const container = document.getElementById("routesContainer");
-    let html = "";
+    // 1. Operational Cost
+    const totalCost = Math.round(data.total_fleet_cost_inr || 0);
+    const costEl = document.getElementById("managerCost");
+    if (costEl) costEl.textContent = `₹${totalCost.toLocaleString()}`;
 
-    data.routes.forEach((r) => {
-        html += `
-            <div class="route-result-card" style="border-left: 4px solid ${r.color_hex};">
-                <div class="route-header-box">
-                    <span class="route-title">${r.vehicle_name} (${r.vehicle_class.toUpperCase()})</span>
-                    <span class="route-cost">Rs ${r.estimated_cost_inr}</span>
-                </div>
-                <div class="route-stats-row">
-                    <span>Distance: ${(r.total_distance_m / 1000).toFixed(1)} km</span>
-                    <span>Time: ${(r.total_duration_s / 3600).toFixed(1)} hrs</span>
-                    <span>Cargo: ${r.total_load_kg} kg</span>
-                </div>
-                <div class="timeline-stops">
-        `;
+    // 2. Total Payload & Fleet Capacity
+    let totalPayload = 0;
+    let totalCapacity = 0;
+    data.routes.forEach(r => {
+        const isVan = r.vehicle_class === "van";
+        const cap = isVan ? 1200 : 4500;
+        totalPayload += (r.total_load_kg || 0);
+        totalCapacity += cap;
+    });
+    const utilPct = totalCapacity > 0 ? Math.round((totalPayload / totalCapacity) * 100) : 0;
+    const utilEl = document.getElementById("managerUtilization");
+    if (utilEl) utilEl.textContent = `${utilPct}%`;
+    const loadSubEl = document.getElementById("managerLoadSub");
+    if (loadSubEl) loadSubEl.textContent = `${totalPayload.toLocaleString()} / ${totalCapacity.toLocaleString()} kg cargo`;
 
-        r.stops_visited.forEach((s, sIdx) => {
-            const isDepot = sIdx === 0 || sIdx === r.stops_visited.length - 1;
-            const markerText = isDepot ? "Hub" : sIdx;
+    // 3. ESG CO2 Savings Metric (vs unoptimized individual detours: ~210g CO2 / km)
+    const co2SavedKg = ((data.total_fleet_distance_km || 0) * 0.22 * 1.8).toFixed(1);
+    const co2El = document.getElementById("managerCo2");
+    if (co2El) co2El.textContent = `${co2SavedKg} kg`;
+
+    // 4. Legal Compliance / Fine Risk
+    const riskEl = document.getElementById("managerLegalRisk");
+    if (riskEl) {
+        riskEl.textContent = "₹0 Risk";
+        riskEl.className = "kpi-val text-success";
+    }
+
+    // 5. Active Vehicle Count Badge
+    const countBadge = document.getElementById("managerActiveCount");
+    if (countBadge) countBadge.textContent = `${data.routes.length} Active`;
+
+    // 6. Fleet Allocation Matrix Table
+    const tbody = document.getElementById("managerFleetTbody");
+    if (tbody) {
+        let html = "";
+        data.routes.forEach((route) => {
+            const isVan = route.vehicle_class === "van";
+            const cap = isVan ? 1200 : 4500;
+            const loadKg = route.total_load_kg || 0;
+            const pct = Math.min(100, Math.round((loadKg / cap) * 100));
+            const dropsCount = Math.max(0, (route.stops_visited || []).length - 2);
+            const classBadge = isVan 
+                ? '<span class="badge" style="background:rgba(2,132,199,0.2); color:#38bdf8;">VAN (LCV)</span>' 
+                : '<span class="badge" style="background:rgba(217,119,6,0.2); color:#fbbf24;">TRUCK (HCV)</span>';
+
             html += `
-                <div class="timeline-row">
-                    <span class="timeline-dot">${markerText}</span>
-                    <span class="timeline-name">${s.name}</span>
-                    <span class="timeline-time">${s.clock_time_str}</span>
+                <tr>
+                    <td>
+                        <strong style="display:flex; align-items:center; gap:6px;">
+                            <span style="display:inline-block; width:10px; height:10px; border-radius:50%; background:${route.color_hex};"></span>
+                            ${route.vehicle_name}
+                        </strong>
+                        <span style="font-size:10px; color:#94a3b8;">${route.vehicle_id}</span>
+                    </td>
+                    <td>${classBadge}</td>
+                    <td><strong>${dropsCount}</strong> drops</td>
+                    <td>
+                        <div style="font-size:11px; font-weight:600;">${loadKg} / ${cap} kg (${pct}%)</div>
+                        <div style="background:#334155; height:4px; border-radius:2px; margin-top:3px; overflow:hidden;">
+                            <div style="background:${route.color_hex}; width:${pct}%; height:100%;"></div>
+                        </div>
+                    </td>
+                    <td><strong>₹${Math.round(route.estimated_cost_inr).toLocaleString()}</strong></td>
+                </tr>
+            `;
+        });
+        tbody.innerHTML = html;
+    }
+}
+
+// RENDER DRIVER TURN-BY-TURN HUD
+function renderDriverHUD(data, selectedVehicleId = null) {
+    if (!data || !data.routes || data.routes.length === 0) return;
+
+    const select = document.getElementById("driverVehicleSelect");
+    if (!select) return;
+
+    // Populate Vehicle Select
+    const currentVal = selectedVehicleId || state.activeDriverVehicleId || data.routes[0].vehicle_id;
+    state.activeDriverVehicleId = currentVal;
+
+    let selectHtml = "";
+    data.routes.forEach(r => {
+        const drops = Math.max(0, (r.stops_visited || []).length - 2);
+        selectHtml += `<option value="${r.vehicle_id}" ${r.vehicle_id === currentVal ? "selected" : ""}>
+            ${r.vehicle_name} (${r.vehicle_class.toUpperCase()} • ${drops} drops)
+        </option>`;
+    });
+    select.innerHTML = selectHtml;
+
+    // Find the currently selected route
+    const activeRoute = data.routes.find(r => r.vehicle_id === currentVal) || data.routes[0];
+    const allStops = activeRoute.stops_visited || [];
+    const deliveryStops = allStops.slice(1, -1); // excludes initial depot and final return depot
+
+    // Driver Names by Vehicle ID
+    const driverRegistry = {
+        "VAN-01": { name: "Suresh Kumar", reg: state.selectedRegion === "NAGPUR_NMC" ? "MH-31-EQ-4421" : (state.selectedRegion === "PUNE_PMC" ? "MH-12-RN-8819" : "MH-04-AZ-2091") },
+        "VAN-02": { name: "Ramesh Pawar", reg: state.selectedRegion === "NAGPUR_NMC" ? "MH-31-DS-9102" : (state.selectedRegion === "PUNE_PMC" ? "MH-12-PQ-5520" : "MH-04-BV-4820") },
+        "VAN-03": { name: "Rajesh Shinde", reg: state.selectedRegion === "NAGPUR_NMC" ? "MH-31-FG-1188" : (state.selectedRegion === "PUNE_PMC" ? "MH-12-GH-3390" : "MH-04-CX-6712") },
+        "VAN-04": { name: "Vijay Sharma", reg: state.selectedRegion === "NAGPUR_NMC" ? "MH-31-HJ-7733" : (state.selectedRegion === "PUNE_PMC" ? "MH-12-KL-1209" : "MH-04-DF-8821") },
+        "TRUCK-01": { name: "Dilip Patil", reg: state.selectedRegion === "NAGPUR_NMC" ? "MH-31-TR-5001" : (state.selectedRegion === "PUNE_PMC" ? "MH-12-TR-7001" : "MH-04-TR-9001") },
+        "TRUCK-02": { name: "Manoj Gawande", reg: state.selectedRegion === "NAGPUR_NMC" ? "MH-31-TR-5002" : (state.selectedRegion === "PUNE_PMC" ? "MH-12-TR-7002" : "MH-04-TR-9002") },
+        "TRUCK-03": { name: "Amit Deshmukh", reg: state.selectedRegion === "NAGPUR_NMC" ? "MH-31-TR-5003" : (state.selectedRegion === "PUNE_PMC" ? "MH-12-TR-7003" : "MH-04-TR-9003") }
+    };
+    const driverInfo = driverRegistry[activeRoute.vehicle_id] || { name: "Operator", reg: "MH-REG-COMMERCIAL" };
+
+    // Update Drop Counts and Checklist
+    let completedCount = 0;
+    let nextPendingStop = null;
+    let nextPendingIndex = -1;
+
+    deliveryStops.forEach((stop, idx) => {
+        const key = `${activeRoute.vehicle_id}_${idx}`;
+        if (state.driverDeliveredStops[key]) {
+            completedCount++;
+        } else if (!nextPendingStop) {
+            nextPendingStop = stop;
+            nextPendingIndex = idx;
+        }
+    });
+
+    const totalDrops = deliveryStops.length;
+    const progressPct = totalDrops > 0 ? Math.round((completedCount / totalDrops) * 100) : 0;
+
+    // Update Next Stop Card
+    const nextNameEl = document.getElementById("driverNextName");
+    const nextTimeEl = document.getElementById("driverNextTime");
+    const nextMetaEl = document.getElementById("driverNextMeta");
+    const markBtn = document.getElementById("btnMarkCurrentDelivered");
+
+    if (totalDrops === 0) {
+        if (nextNameEl) nextNameEl.textContent = "No Drops Assigned";
+        if (nextTimeEl) nextTimeEl.textContent = "--:--";
+        if (nextMetaEl) nextMetaEl.textContent = "Vehicle has no scheduled intermediate delivery stops.";
+        if (markBtn) markBtn.disabled = true;
+    } else if (!nextPendingStop) {
+        if (nextNameEl) nextNameEl.textContent = "All Assigned Drops Delivered! 🎉";
+        if (nextTimeEl) nextTimeEl.textContent = "Done";
+        if (nextMetaEl) nextMetaEl.textContent = `All ${totalDrops} stops complete. Proceed to ${allStops[allStops.length - 1]?.name || "Warehouse Hub"} for shift wrap-up.`;
+        if (markBtn) {
+            markBtn.disabled = true;
+            markBtn.innerHTML = '<i class="fa-solid fa-flag-checkered"></i> Shift Route Completed';
+        }
+    } else {
+        if (nextNameEl) nextNameEl.textContent = `${nextPendingIndex + 1}. ${nextPendingStop.name}`;
+        if (nextTimeEl) nextTimeEl.textContent = nextPendingStop.clock_time_str || "Scheduled";
+        const zoneBadge = nextPendingStop.is_in_restricted_urban_core 
+            ? '<span style="color:#ef4444; font-weight:600;"><i class="fa-solid fa-triangle-exclamation"></i> Central Zone Ban Active</span>' 
+            : '<span style="color:#4ade80;"><i class="fa-solid fa-circle-check"></i> Outer Corridor</span>';
+        if (nextMetaEl) {
+            nextMetaEl.innerHTML = `Driver: <strong>${driverInfo.name}</strong> (${driverInfo.reg})<br>Drop Cargo: <strong>${nextPendingStop.current_load_kg || 400} kg</strong> | Dwell: ${Math.round((nextPendingStop.waiting_time_sec || 600) / 60)} min | ${zoneBadge}`;
+        }
+        if (markBtn) {
+            markBtn.disabled = false;
+            markBtn.innerHTML = '<i class="fa-solid fa-circle-check"></i> Mark Stop as Completed / Delivered';
+        }
+    }
+
+    // Update Progress
+    const ratioEl = document.getElementById("driverProgressRatio");
+    if (ratioEl) ratioEl.textContent = `${completedCount} / ${totalDrops} Completed (${progressPct}%)`;
+    const barEl = document.getElementById("driverProgressBar");
+    if (barEl) barEl.style.width = `${progressPct}%`;
+    const dropsBadge = document.getElementById("driverTotalDrops");
+    if (dropsBadge) dropsBadge.textContent = `${totalDrops} Drops`;
+
+    // Render Checklist
+    const listContainer = document.getElementById("driverChecklistContainer");
+    if (listContainer) {
+        if (deliveryStops.length === 0) {
+            listContainer.innerHTML = '<p style="font-size:11px; color:#94a3b8; text-align:center; padding:12px 0;">No delivery waypoints for this vehicle.</p>';
+            return;
+        }
+
+        let html = "";
+        deliveryStops.forEach((stop, idx) => {
+            const isDone = !!state.driverDeliveredStops[`${activeRoute.vehicle_id}_${idx}`];
+            const isCurrent = !isDone && nextPendingStop && nextPendingIndex === idx;
+            const rowClass = isDone ? "driver-step-row is-delivered" : (isCurrent ? "driver-step-row is-active" : "driver-step-row");
+            const btnIcon = isDone ? "fa-circle-check text-success" : (isCurrent ? "fa-circle-dot text-primary" : "fa-circle text-muted");
+            const btnTitle = isDone ? "Mark as pending" : "Mark as delivered";
+
+            html += `
+                <div class="${rowClass}">
+                    <span class="step-num">${idx + 1}</span>
+                    <div class="step-details">
+                        <div class="step-name">${stop.name}</div>
+                        <div class="step-meta">
+                            <span><i class="fa-regular fa-clock"></i> ${stop.clock_time_str || "--:--"}</span>
+                            <span><i class="fa-solid fa-box"></i> ${stop.current_load_kg || 400} kg</span>
+                        </div>
+                    </div>
+                    <button type="button" class="btn-step-toggle" title="${btnTitle}" onclick="window.toggleDriverStop('${activeRoute.vehicle_id}', ${idx})">
+                        <i class="fa-solid ${btnIcon}" style="font-size:16px;"></i>
+                    </button>
                 </div>
             `;
         });
-
-        html += `
-                </div>
-            </div>
-        `;
-    });
-
-    container.innerHTML = html;
+        listContainer.innerHTML = html;
+    }
 }
+
+// TOGGLE DRIVER STOP DELIVERED STATUS
+function toggleDriverStop(vehicleId, stopIndex) {
+    const key = `${vehicleId}_${stopIndex}`;
+    state.driverDeliveredStops[key] = !state.driverDeliveredStops[key];
+    if (state.lastOptimizationData) {
+        renderDriverHUD(state.lastOptimizationData, vehicleId);
+    }
+    const status = state.driverDeliveredStops[key] ? "delivered" : "pending";
+    showToast(`Stop ${stopIndex + 1} marked as ${status}.`, "info");
+}
+window.toggleDriverStop = toggleDriverStop;
+
+// MARK CURRENT STOP DELIVERED
+function markCurrentStopDelivered() {
+    if (!state.lastOptimizationData || !state.lastOptimizationData.routes) return;
+    const vehicleId = state.activeDriverVehicleId || state.lastOptimizationData.routes[0]?.vehicle_id;
+    if (!vehicleId) return;
+
+    const activeRoute = state.lastOptimizationData.routes.find(r => r.vehicle_id === vehicleId);
+    if (!activeRoute) return;
+
+    const deliveryStops = (activeRoute.stops_visited || []).slice(1, -1);
+    for (let idx = 0; idx < deliveryStops.length; idx++) {
+        const key = `${vehicleId}_${idx}`;
+        if (!state.driverDeliveredStops[key]) {
+            state.driverDeliveredStops[key] = true;
+            renderDriverHUD(state.lastOptimizationData, vehicleId);
+            showToast(`Marked "${deliveryStops[idx].name}" as delivered!`, "success");
+            return;
+        }
+    }
+    showToast("All stops for this vehicle are already completed!", "info");
+}
+window.markCurrentStopDelivered = markCurrentStopDelivered;
 
 // LIVE DRIVER ROUTE ANIMATION ON MAP
 async function startRouteAnimation() {
@@ -1760,7 +2020,7 @@ function initRegulatoryLayers() {
 function updateRulesTabContent() {
     const isNagpur = state.selectedRegion === "NAGPUR_NMC";
     const isPune = state.selectedRegion === "PUNE_PMC";
-    const container = document.querySelector("#tab-rules .rules-document");
+    const container = document.getElementById("cityRulesDocument") || document.querySelector("#tab-rules .rules-document") || document.querySelector(".rules-document");
     if (!container) return;
 
     if (isNagpur) {
