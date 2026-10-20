@@ -57,7 +57,10 @@
                     <div class="card rule-card">
                         <div class="card-header">
                             <span class="card-title"><i class="fa-solid fa-traffic-light"></i> Municipal Traffic Regulation</span>
-                            <span class="region-tag">Mumbai MMRDA</span>
+                            <select id="regionSelector" class="region-select-badge" title="Switch Region">
+                                <option value="MUMBAI_MMRDA" selected>Mumbai MMRDA</option>
+                                <option value="PUNE_PMC">Pune PMC</option>
+                            </select>
                         </div>
                         <div class="time-control-group">
                             <div class="time-row">
@@ -317,6 +320,53 @@
                             <button class="btn btn-secondary btn-block" id="exportManifestBtn">
                                 <i class="fa-solid fa-file-invoice"></i> Export & Print Dispatch Manifest
                             </button>
+                        </div>
+                    </div>
+
+                    <!-- Fleet Trade-off Comparison Widget (1 Heavy Truck vs 3 Delivery Vans) -->
+                    <div class="card trade-off-card">
+                        <div class="card-header">
+                            <span class="card-title"><i class="fa-solid fa-scale-balanced text-primary"></i> Fleet Trade-off Analyzer</span>
+                            <span class="trade-off-badge">1 Truck vs 3 Vans</span>
+                        </div>
+                        <p class="field-hint">Cost and time trade-off between 1 Heavy Truck (Tata 407) vs. 3 Nimble Delivery Vans (Tata Ace) under municipal peak bans:</p>
+
+                        <div class="trade-off-table-wrapper">
+                            <table class="trade-off-table">
+                                <thead>
+                                    <tr>
+                                        <th>Metric</th>
+                                        <th>1 Heavy Truck</th>
+                                        <th>3 Delivery Vans</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td><strong>Fuel & Wage Cost</strong></td>
+                                        <td class="text-success">₹1,850 (Lower)</td>
+                                        <td class="text-amber">₹2,320 (+₹470)</td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>No-Entry Delay</strong></td>
+                                        <td class="text-danger"><strong>+4.5 hrs</strong> (Banned outside city)</td>
+                                        <td class="text-success"><strong>0 min</strong> (Exempt from city ban)</td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>Police Fine Risk</strong></td>
+                                        <td class="text-danger"><strong>₹20,000 fine</strong> (Sec 115 MVA)</td>
+                                        <td class="text-success"><strong>₹0</strong> (100% Legal Exemption)</td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>Flyover Gantries</strong></td>
+                                        <td class="text-amber">Bypasses flyovers (2.5m limit)</td>
+                                        <td class="text-success">Direct route over flyovers</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="trade-off-verdict">
+                            <i class="fa-solid fa-circle-check text-success"></i>
+                            <span id="tradeOffRecommendationText"><strong>Dispatch Strategy:</strong> Using 3 Tata Ace delivery vans eliminates the ₹20,000 fine liability and finishes deliveries 4.5 hours earlier during peak hours despite ₹470 higher vehicle fuel cost.</span>
                         </div>
                     </div>
 

@@ -26,6 +26,7 @@ const state = {
     barriersLayer: null,
     bridgesLayer: null,
     lastOptimizationData: null,
+    selectedRegion: "MUMBAI_MMRDA",
     
     // Animation tracking
     animationMarkers: [],
@@ -50,8 +51,19 @@ const MUMBAI_GEOFENCE_COORDS = [
     [19.2550, 72.8600]  // Back to Dahisar Checkpost
 ];
 
-// Structural Road Barriers (Flyover Height Gantries & Bridge Load Limits)
-const REGULATORY_BARRIERS = [
+// Pune Municipal Corporation (PMC) Regulatory Core Geofence
+const PUNE_GEOFENCE_COORDS = [
+    [18.5650, 73.8300], // Khadki / University
+    [18.5600, 73.8900], // Yerwada / Bund Garden
+    [18.5100, 73.9100], // Camp / Hadapsar Border
+    [18.4800, 73.8600], // Swargate / Bibwewadi
+    [18.4900, 73.8200], // Karve Road / Erandwane
+    [18.5300, 73.8100], // Senapati Bapat Road
+    [18.5650, 73.8300]  // Back to University
+];
+
+// Structural Road Barriers (Mumbai)
+const MUMBAI_BARRIERS = [
     {
         type: "height_gantry",
         name: "JJ Flyover Overhead Clearance Gantry",
@@ -106,6 +118,69 @@ const REGULATORY_BARRIERS = [
         rule_details: "7.5 Tonnes Maximum Axle Rating. Heavy trucks must divert via Harbour bypass.",
         penalty: "Weight restriction enforcement"
     }
+];
+
+// Structural Road Barriers (Pune)
+const PUNE_BARRIERS = [
+    {
+        type: "height_gantry",
+        name: "Swargate Flyover Clearance Gantry",
+        lat: 18.5018,
+        lon: 73.8585,
+        height_limit_m: 2.5,
+        rule_details: "2.5m Max Clearance. Freight trucks diverted to ground level.",
+        penalty: "Gantry collision hazard"
+    },
+    {
+        type: "bridge_weight",
+        name: "Old Lakdi Pul (Sambhaji Bridge)",
+        lat: 18.5150,
+        lon: 73.8480,
+        weight_limit_t: 5.0,
+        rule_details: "5.0 Tonnes Gross Vehicle Weight limit on heritage arch span.",
+        penalty: "Heritage infrastructure fine"
+    },
+    {
+        type: "bridge_weight",
+        name: "Shivaji Bridge (Dengle Bridge)",
+        lat: 18.5280,
+        lon: 73.8550,
+        weight_limit_t: 5.0,
+        rule_details: "5.0 Tonnes Weight Limit. Heavy trucks must use Sangam Bridge.",
+        penalty: "Arterial weight limit penalty"
+    },
+    {
+        type: "height_gantry",
+        name: "Pune University Flyover Bar",
+        lat: 18.5410,
+        lon: 73.8290,
+        height_limit_m: 2.5,
+        rule_details: "2.5m Clearance Bar. Trucks diverted to Senapati Bapat Road surface.",
+        penalty: "Traffic obstruction fine"
+    }
+];
+
+// Master Central Hub (Pune)
+const PUNE_PRESET_DEPOT = {
+    depot_id: "DEPOT-CHAKAN",
+    name: "Bhosari-Chakan MIDC Central Freight Terminal",
+    lat: 18.6250,
+    lon: 73.8350,
+    operating_hours_sec: 43200
+};
+
+// 10 Commercial Delivery Drops across Pune Metropolitan Area
+const PUNE_ALL_STOPS = [
+    { stop_id: "PUNE-01", name: "Swargate Wholesale Market", lat: 18.5018, lon: 73.8585, demand_kg: 500, time_window_start_sec: 0, time_window_end_sec: 36000, service_duration_sec: 600, is_in_restricted_urban_core: true },
+    { stop_id: "PUNE-02", name: "Shivajinagar Goods Terminal", lat: 18.5314, lon: 73.8446, demand_kg: 450, time_window_start_sec: 1800, time_window_end_sec: 43200, service_duration_sec: 500, is_in_restricted_urban_core: true },
+    { stop_id: "PUNE-03", name: "Hinjawadi Phase 1 Logistics Bay", lat: 18.5913, lon: 73.7389, demand_kg: 700, time_window_start_sec: 0, time_window_end_sec: 43200, service_duration_sec: 750, is_in_restricted_urban_core: false },
+    { stop_id: "PUNE-04", name: "Hadapsar Industrial Estate", lat: 18.5080, lon: 73.9260, demand_kg: 600, time_window_start_sec: 1800, time_window_end_sec: 43200, service_duration_sec: 600, is_in_restricted_urban_core: false },
+    { stop_id: "PUNE-05", name: "Kothrud Karve Road Distribution", lat: 18.5074, lon: 73.8077, demand_kg: 350, time_window_start_sec: 3600, time_window_end_sec: 36000, service_duration_sec: 450, is_in_restricted_urban_core: true },
+    { stop_id: "PUNE-06", name: "Viman Nagar Commercial Hub", lat: 18.5679, lon: 73.9143, demand_kg: 400, time_window_start_sec: 1800, time_window_end_sec: 43200, service_duration_sec: 500, is_in_restricted_urban_core: true },
+    { stop_id: "PUNE-07", name: "Pimpri-Chinchwad MIDC Cluster", lat: 18.6298, lon: 73.7997, demand_kg: 850, time_window_start_sec: 0, time_window_end_sec: 43200, service_duration_sec: 800, is_in_restricted_urban_core: false },
+    { stop_id: "PUNE-08", name: "Katraj South Freight Corridor", lat: 18.4575, lon: 73.8677, demand_kg: 500, time_window_start_sec: 1800, time_window_end_sec: 43200, service_duration_sec: 500, is_in_restricted_urban_core: false },
+    { stop_id: "PUNE-09", name: "Wagholi Nagar Road Freight Bay", lat: 18.5810, lon: 73.9820, demand_kg: 400, time_window_start_sec: 0, time_window_end_sec: 43200, service_duration_sec: 400, is_in_restricted_urban_core: false },
+    { stop_id: "PUNE-10", name: "Deccan Gymkhana Retail Center", lat: 18.5180, lon: 73.8390, demand_kg: 300, time_window_start_sec: 3600, time_window_end_sec: 36000, service_duration_sec: 450, is_in_restricted_urban_core: true }
 ];
 
 // Master Central Hub
@@ -451,8 +526,8 @@ const MUMBAI_ALL_STOPS = [
     }
 ];
 
-// Quick-Add Logistics Hubs Lookup
-const QUICK_HUBS = {
+// Quick-Add Logistics Hubs Lookup (Mumbai MMRDA)
+const MUMBAI_QUICK_HUBS = {
     KALAMBOLI: { name: "Kalamboli Steel Market", lat: 19.0222, lon: 73.0988, demand_kg: 900, is_restricted: false },
     TALOJA: { name: "Taloja MIDC Industrial Hub", lat: 19.0620, lon: 73.1380, demand_kg: 850, is_restricted: false },
     WADALA: { name: "Wadala Truck Terminal", lat: 19.0280, lon: 72.8750, demand_kg: 700, is_restricted: true },
@@ -465,13 +540,41 @@ const QUICK_HUBS = {
     MAHAPE: { name: "Mahape Millennium Business Park", lat: 19.1080, lon: 73.0180, demand_kg: 500, is_restricted: false }
 };
 
+// Quick-Add Logistics Hubs Lookup (Pune PMC)
+const PUNE_QUICK_HUBS = {
+    PIMPRI: { name: "Pimpri MIDC Logistics Bay", lat: 18.6298, lon: 73.7997, demand_kg: 850, is_restricted: false },
+    CHAKAN: { name: "Chakan Auto Cluster Dock", lat: 18.7550, lon: 73.8550, demand_kg: 900, is_restricted: false },
+    HADAPSAR: { name: "Hadapsar Magarpatta Freight Stop", lat: 18.5080, lon: 73.9260, demand_kg: 600, is_restricted: false },
+    HINJAWADI: { name: "Hinjawadi IT Park Freight Hub", lat: 18.5913, lon: 73.7389, demand_kg: 700, is_restricted: false },
+    KATRAJ: { name: "Katraj South Distribution Center", lat: 18.4575, lon: 73.8677, demand_kg: 500, is_restricted: false },
+    SWARGATE: { name: "Swargate Wholesale Terminal", lat: 18.5018, lon: 73.8585, demand_kg: 500, is_restricted: true },
+    WAGHOLI: { name: "Wagholi Nagar Road Freight Bay", lat: 18.5810, lon: 73.9820, demand_kg: 400, is_restricted: false },
+    KOTHRUD: { name: "Kothrud Distribution Hub", lat: 18.5074, lon: 73.8077, demand_kg: 350, is_restricted: true }
+};
+
+// Populate Quick-Add Dropdown based on active region
+function updateQuickHubDropdown() {
+    const select = document.getElementById("quickSelectHub");
+    if (!select) return;
+    const isPune = state.selectedRegion === "PUNE_PMC";
+    const hubs = isPune ? PUNE_QUICK_HUBS : MUMBAI_QUICK_HUBS;
+    
+    let html = `<option value="">-- Quick-Add ${isPune ? "Pune" : "Mumbai"} Logistics Hub --</option>`;
+    for (const [key, hub] of Object.entries(hubs)) {
+        html += `<option value="${key}">${hub.name} (${hub.demand_kg} kg)</option>`;
+    }
+    select.innerHTML = html;
+}
+
 // Initialize Application
 document.addEventListener("DOMContentLoaded", () => {
     initMap();
     initEventListeners();
     updateClockDisplay(state.departureHour);
     updateFleetSummary();
-    loadMumbaiPreset();
+    updateQuickHubDropdown();
+    updateRulesTabContent();
+    loadDatasetScale(6);
 });
 
 // Initialize Leaflet Map
@@ -548,6 +651,26 @@ function initEventListeners() {
         updateFleetSummary();
     });
 
+    // Region Selector (Mumbai MMRDA vs Pune PMC)
+    const regionSelector = document.getElementById("regionSelector");
+    if (regionSelector) {
+        regionSelector.addEventListener("change", (e) => {
+            state.selectedRegion = e.target.value;
+            const isPune = state.selectedRegion === "PUNE_PMC";
+            if (isPune) {
+                state.map.setView([18.5300, 73.8500], 11);
+            } else {
+                state.map.setView([19.1400, 72.9700], 11);
+            }
+            refreshRegulatoryLayers();
+            updateClockDisplay(state.departureHour);
+            updateQuickHubDropdown();
+            updateRulesTabContent();
+            loadDatasetScale(6);
+            showToast(`Switched region to ${isPune ? "Pune Municipal Corporation (PMC)" : "Mumbai MMRDA"}`, "info");
+        });
+    }
+
     // Preset & Reset
     document.getElementById("loadSampleBtn")?.addEventListener("click", () => loadDatasetScale(6));
     document.getElementById("clearBtn").addEventListener("click", clearAll);
@@ -564,19 +687,21 @@ function initEventListeners() {
     document.getElementById("btnQuickAddHub")?.addEventListener("click", () => {
         const select = document.getElementById("quickSelectHub");
         const key = select.value;
-        if (!key || !QUICK_HUBS[key]) {
+        const isPune = state.selectedRegion === "PUNE_PMC";
+        const hubs = isPune ? PUNE_QUICK_HUBS : MUMBAI_QUICK_HUBS;
+        if (!key || !hubs[key]) {
             showToast("Please choose a freight hub from the dropdown list.", "warning");
             return;
         }
 
         if (!state.depot) {
-            state.depot = { ...MUMBAI_PRESET_DEPOT };
+            state.depot = isPune ? { ...PUNE_PRESET_DEPOT } : { ...MUMBAI_PRESET_DEPOT };
         }
 
-        const hub = QUICK_HUBS[key];
+        const hub = hubs[key];
         const idx = state.stops.length + 1;
         state.stops.push({
-            stop_id: `STOP-${String(idx).padStart(2, "0")}`,
+            stop_id: `${isPune ? "PUNE" : "STOP"}-${String(idx).padStart(2, "0")}`,
             name: hub.name,
             lat: hub.lat,
             lon: hub.lon,
@@ -721,19 +846,36 @@ function updateClockDisplay(hourVal) {
     const statusBox = document.getElementById("ruleStatusBox");
     const statusTitle = document.getElementById("ruleStatusTitle");
     const statusDesc = document.getElementById("ruleStatusDesc");
+    const isPune = state.selectedRegion === "PUNE_PMC";
 
-    if (hourVal >= 8.0 && hourVal <= 11.5) {
-        statusBox.className = "rule-status-box status-restricted";
-        statusTitle.textContent = "MORNING NO-ENTRY ACTIVE (08:00 AM - 11:30 AM)";
-        statusDesc.textContent = "Heavy freight trucks (Tata 407) are banned in city limits. Illegal entry risks Rs 20,000 fine. Small delivery vans (Tata Ace) are allowed.";
-    } else if (hourVal >= 17.0 && hourVal <= 21.5) {
-        statusBox.className = "rule-status-box status-restricted";
-        statusTitle.textContent = "EVENING NO-ENTRY ACTIVE (05:00 PM - 09:30 PM)";
-        statusDesc.textContent = "Severe peak ban on heavy goods vehicles. Only small delivery vans under 3.5 tonnes GVW are permitted.";
+    if (isPune) {
+        if (hourVal >= 9.0 && hourVal <= 12.0) {
+            statusBox.className = "rule-status-box status-restricted";
+            statusTitle.textContent = "PMC MORNING PEAK BAN ACTIVE (09:00 AM - 12:00 PM)";
+            statusDesc.textContent = "Heavy freight trucks (Tata 407) are banned in central Pune (Shivajinagar, Swargate). Fine ₹15,000. Delivery vans (Tata Ace) permitted.";
+        } else if (hourVal >= 16.5 && hourVal <= 20.5) {
+            statusBox.className = "rule-status-box status-restricted";
+            statusTitle.textContent = "PMC EVENING PEAK BAN ACTIVE (04:30 PM - 08:30 PM)";
+            statusDesc.textContent = "Strict peak ban on heavy commercial vehicles > 3.5 tonnes GVW across PMC core arterial roads.";
+        } else {
+            statusBox.className = "rule-status-box status-open";
+            statusTitle.textContent = "PMC ARTERIALS OPEN (UNRESTRICTED)";
+            statusDesc.textContent = "Both delivery vans and heavy freight trucks are permitted on all designated Pune commercial arterial corridors.";
+        }
     } else {
-        statusBox.className = "rule-status-box status-open";
-        statusTitle.textContent = "ALL ROADS OPEN (UNRESTRICTED)";
-        statusDesc.textContent = "Both delivery vans and heavy freight trucks are permitted on all designated commercial arterial roads.";
+        if (hourVal >= 8.0 && hourVal <= 11.5) {
+            statusBox.className = "rule-status-box status-restricted";
+            statusTitle.textContent = "MORNING NO-ENTRY ACTIVE (08:00 AM - 11:30 AM)";
+            statusDesc.textContent = "Heavy freight trucks (Tata 407) are banned in city limits. Illegal entry risks Rs 20,000 fine. Small delivery vans (Tata Ace) are allowed.";
+        } else if (hourVal >= 17.0 && hourVal <= 21.5) {
+            statusBox.className = "rule-status-box status-restricted";
+            statusTitle.textContent = "EVENING NO-ENTRY ACTIVE (05:00 PM - 09:30 PM)";
+            statusDesc.textContent = "Severe peak ban on heavy goods vehicles. Only small delivery vans under 3.5 tonnes GVW are permitted.";
+        } else {
+            statusBox.className = "rule-status-box status-open";
+            statusTitle.textContent = "ALL ROADS OPEN (UNRESTRICTED)";
+            statusDesc.textContent = "Both delivery vans and heavy freight trucks are permitted on all designated commercial arterial roads.";
+        }
     }
 }
 
@@ -748,7 +890,7 @@ function updateFleetSummary() {
     optimizeBtn.disabled = !(hasVehicles && hasStops);
 }
 
-// Load Mumbai Logistics Dataset at Specific Benchmark Scale (6, 10, 20, 30 Drops)
+// Load Regional Logistics Dataset at Specific Benchmark Scale (6, 10, 20, 30 Drops)
 function loadDatasetScale(scale = 6) {
     stopRouteAnimation();
     state.currentRoutes = [];
@@ -757,9 +899,11 @@ function loadDatasetScale(scale = 6) {
     document.getElementById("mapMetricsBar").classList.add("hidden");
     document.getElementById("mapAnimBar").classList.add("hidden");
 
-    state.depot = { ...MUMBAI_PRESET_DEPOT };
-    const sliceCount = Math.min(scale, MUMBAI_ALL_STOPS.length);
-    state.stops = JSON.parse(JSON.stringify(MUMBAI_ALL_STOPS.slice(0, sliceCount)));
+    const isPune = state.selectedRegion === "PUNE_PMC";
+    state.depot = isPune ? { ...PUNE_PRESET_DEPOT } : { ...MUMBAI_PRESET_DEPOT };
+    const allStops = isPune ? PUNE_ALL_STOPS : MUMBAI_ALL_STOPS;
+    const sliceCount = Math.min(scale, allStops.length);
+    state.stops = JSON.parse(JSON.stringify(allStops.slice(0, sliceCount)));
 
     // Scale recommended fleet capacity dynamically
     if (scale <= 6) {
@@ -791,11 +935,7 @@ function loadDatasetScale(scale = 6) {
     renderLocationsList();
     renderMapMarkers();
     updateFleetSummary();
-    showToast(`Loaded ${sliceCount} commercial drops (Fleet: ${state.fleet.vans} Vans, ${state.fleet.trucks} Trucks)`, "success");
-}
-
-function loadMumbaiPreset() {
-    loadDatasetScale(6);
+    showToast(`Loaded ${sliceCount} ${isPune ? "Pune" : "Mumbai"} commercial drops (Fleet: ${state.fleet.vans} Vans, ${state.fleet.trucks} Trucks)`, "success");
 }
 
 // Remove an Individual Destination Stop
@@ -1021,7 +1161,7 @@ async function optimizeRoutes(autoSwitchTab = true) {
         stops: state.stops,
         fleet: fleet,
         departure_time_iso: "2026-10-09T08:30:00+05:30",
-        region: "MUMBAI_MMRDA",
+        region: state.selectedRegion || "MUMBAI_MMRDA",
         apply_traffic_congestion: true,
         enforce_government_guidelines: true
     };
@@ -1083,6 +1223,19 @@ function handleOptimizationSuccess(data, autoSwitchTab = true) {
     document.getElementById("metricVehicles").textContent = `${data.routes.length} Active Vehicles`;
 
     document.getElementById("mapAnimBar").classList.remove("hidden");
+
+    // Dynamic Trade-Off Analysis Update
+    const isPune = state.selectedRegion === "PUNE_PMC";
+    const fineRisk = isPune ? "₹15,000" : "₹20,000";
+    const delayHours = isPune ? "4.0" : "4.5";
+    const fineEl = document.querySelector(".trade-off-table tr:nth-child(3) td:nth-child(2)");
+    if (fineEl) {
+        fineEl.innerHTML = `<strong class="text-danger">${fineRisk} fine</strong> (Sec 115 MVA)`;
+    }
+    const tradeOffText = document.getElementById("tradeOffRecommendationText");
+    if (tradeOffText) {
+        tradeOffText.innerHTML = `<strong>Dispatch Strategy (${isPune ? "Pune PMC" : "Mumbai MMRDA"}):</strong> Using 3 Tata Ace delivery vans eliminates the ${fineRisk} fine liability and completes deliveries ${delayHours} hours faster during peak windows despite ₹470 higher vehicle fuel cost.`;
+    }
 
     renderItineraryTab(data);
 
@@ -1337,10 +1490,23 @@ function showToast(message, type = "info") {
     }, 3000);
 }
 
-// INITIALIZE REGULATORY MAP LAYERS
-function initRegulatoryLayers() {
+// REFRESH REGULATORY MAP LAYERS (Mumbai vs Pune)
+function refreshRegulatoryLayers() {
+    state.geofenceLayer.clearLayers();
+    state.barriersLayer.clearLayers();
+    state.bridgesLayer.clearLayers();
+
+    const isPune = state.selectedRegion === "PUNE_PMC";
+    const geofenceCoords = isPune ? PUNE_GEOFENCE_COORDS : MUMBAI_GEOFENCE_COORDS;
+    const barriers = isPune ? PUNE_BARRIERS : MUMBAI_BARRIERS;
+
     // 1. Municipal No-Entry Geofence Polygon
-    const geofencePolygon = L.polygon(MUMBAI_GEOFENCE_COORDS, {
+    const geofenceTitle = isPune ? "Pune Municipal Corporation (PMC) No-Entry Core" : "Greater Mumbai No-Entry Zone";
+    const authority = isPune ? "Pune Municipal Corporation & Traffic Branch (Sec 115 & 116 MVA)" : "Mumbai Traffic Police (Sec 115 & 116 MVA)";
+    const peakHours = isPune ? "09:00 AM - 12:00 PM & 04:30 PM - 08:30 PM" : "08:00 AM - 11:30 AM & 05:00 PM - 09:30 PM";
+    const fineText = isPune ? "Fine Risk: Rs 15,000 + Impoundment" : "Fine Risk: Rs 20,000 + Seizure";
+
+    const geofencePolygon = L.polygon(geofenceCoords, {
         color: "#ef4444",
         weight: 2,
         dashArray: "6, 6",
@@ -1348,18 +1514,18 @@ function initRegulatoryLayers() {
         fillOpacity: 0.12
     }).bindPopup(`
         <div class="regulatory-popup">
-            <h4><i class="fa-solid fa-ban" style="color:#ef4444"></i> Greater Mumbai No-Entry Zone</h4>
-            <p><strong>Authority:</strong> Mumbai Traffic Police (Sec 115 & 116 MVA)</p>
-            <p><strong>Restricted Hours:</strong> 08:00 AM - 11:30 AM & 05:00 PM - 09:30 PM</p>
+            <h4><i class="fa-solid fa-ban" style="color:#ef4444"></i> ${geofenceTitle}</h4>
+            <p><strong>Authority:</strong> ${authority}</p>
+            <p><strong>Restricted Hours:</strong> ${peakHours}</p>
             <p><strong>Restricted:</strong> Heavy Freight Trucks (Tata 407, Eicher, HCVs)</p>
             <p><strong>Exempt:</strong> Delivery Vans (Tata Ace & LCVs under 3.5T GVW)</p>
-            <span class="regulatory-tag tag-geofence">Fine Risk: Rs 20,000 + Seizure</span>
+            <span class="regulatory-tag tag-geofence">${fineText}</span>
         </div>
     `);
     state.geofenceLayer.addLayer(geofencePolygon);
 
     // 2. Height Barriers & Bridge Limits
-    REGULATORY_BARRIERS.forEach(barrier => {
+    barriers.forEach(barrier => {
         if (barrier.type === "height_gantry") {
             const icon = L.divIcon({
                 className: "regulatory-map-marker barrier-map-marker",
@@ -1372,7 +1538,7 @@ function initRegulatoryLayers() {
                     <h4><i class="fa-solid fa-triangle-exclamation" style="color:#f59e0b"></i> ${barrier.name}</h4>
                     <p><strong>Restriction:</strong> Height Clearance &le; ${barrier.height_limit_m} meters</p>
                     <p>${barrier.rule_details}</p>
-                    <span class="regulatory-tag tag-barrier">2.5m Flyover Gantry</span>
+                    <span class="regulatory-tag tag-barrier">${barrier.height_limit_m}m Flyover Gantry</span>
                 </div>
             `);
             state.barriersLayer.addLayer(marker);
@@ -1388,12 +1554,17 @@ function initRegulatoryLayers() {
                     <h4><i class="fa-solid fa-triangle-exclamation" style="color:#ea580c"></i> ${barrier.name}</h4>
                     <p><strong>Restriction:</strong> Gross Vehicle Weight &le; ${barrier.weight_limit_t} Tonnes</p>
                     <p>${barrier.rule_details}</p>
-                    <span class="regulatory-tag tag-bridge">7.5T Bridge Limit</span>
+                    <span class="regulatory-tag tag-bridge">${barrier.weight_limit_t}T Bridge Limit</span>
                 </div>
             `);
             state.bridgesLayer.addLayer(marker);
         }
     });
+}
+
+// INITIALIZE REGULATORY MAP LAYERS
+function initRegulatoryLayers() {
+    refreshRegulatoryLayers();
 
     // Layer Toggle Event Listeners
     document.getElementById("toggleGeofence")?.addEventListener("change", (e) => {
@@ -1421,9 +1592,71 @@ function initRegulatoryLayers() {
     });
 }
 
+// UPDATE CITY TRAFFIC RULES TAB CONTENT
+function updateRulesTabContent() {
+    const isPune = state.selectedRegion === "PUNE_PMC";
+    const container = document.querySelector("#tab-rules .rules-document");
+    if (!container) return;
+
+    if (isPune) {
+        container.innerHTML = `
+            <h2>Pune PMC Commercial Transport Regulations</h2>
+            <p class="rules-subtitle">Reference guide for drivers and dispatchers in Pune Metropolitan Area</p>
+            
+            <div class="rule-box">
+                <h3>1. Heavy Commercial Vehicle Peak-Hour No-Entry</h3>
+                <p>Under Section 115 and 116 of the Motor Vehicles Act, heavy goods trucks (such as Tata 407, Eicher Pro, and multi-axle trucks) are prohibited from entering central Pune roads during peak traffic hours:</p>
+                <ul>
+                    <li><strong>Morning Window:</strong> 09:00 AM to 12:00 PM</li>
+                    <li><strong>Evening Window:</strong> 04:30 PM to 08:30 PM</li>
+                    <li><strong>Vehicles Exempt:</strong> Small delivery vans under 3.5 tonnes GVW (such as Tata Ace, Mahindra Bolero, Ashok Leyland Dost).</li>
+                    <li><strong>Violation Penalty:</strong> Minimum fine of ₹15,000 and vehicle seizure.</li>
+                </ul>
+            </div>
+
+            <div class="rule-box">
+                <h3>2. Swargate & Pune University Flyover Clearance</h3>
+                <p>Key urban flyovers feature overhead steel gantries fixed at a clearance of <strong>2.5 meters</strong>. Freight trucks exceeding 2.5m must use ground-level surface junctions.</p>
+            </div>
+
+            <div class="rule-box">
+                <h3>3. Heritage Bridge Weight Limits (Lakdi Pul & Dengle Bridge)</h3>
+                <p>Historic bridges across Mutha River restrict vehicles weighing over <strong>5.0 Tonnes Gross Vehicle Weight</strong>. Heavy freight must take the Sangam Bridge or outer bypass.</p>
+            </div>
+        `;
+    } else {
+        container.innerHTML = `
+            <h2>Mumbai Regional Commercial Transport Rules</h2>
+            <p class="rules-subtitle">Reference guide for drivers and dispatchers in Greater Mumbai (MMRDA)</p>
+            
+            <div class="rule-box">
+                <h3>1. Heavy Commercial Vehicle Peak-Hour No-Entry</h3>
+                <p>Under Section 115 and 116 of the Motor Vehicles Act, heavy goods trucks (such as Tata 407, Eicher Pro, and multi-axle trucks) are prohibited from entering urban roads during peak traffic hours:</p>
+                <ul>
+                    <li><strong>Morning Window:</strong> 08:00 AM to 11:30 AM</li>
+                    <li><strong>Evening Window:</strong> 05:00 PM to 09:30 PM</li>
+                    <li><strong>Vehicles Exempt:</strong> Small delivery vans under 3.5 tonnes GVW (such as Tata Ace, Mahindra Bolero, Ashok Leyland Dost).</li>
+                    <li><strong>Violation Penalty:</strong> Minimum fine of ₹20,000 and vehicle seizure.</li>
+                </ul>
+            </div>
+
+            <div class="rule-box">
+                <h3>2. Flyover Height Barrier Limits</h3>
+                <p>Most urban flyovers have overhead steel gantries fixed at a height of <strong>2.5 meters</strong>. Freight trucks exceeding 2.5 meters must take ground-level junction roads, which adds roughly 30% to travel time.</p>
+            </div>
+
+            <div class="rule-box">
+                <h3>3. Bridge Weight Load Limits</h3>
+                <p>Older arterial bridges restrict vehicles weighing more than <strong>7.5 Tonnes Gross Vehicle Weight</strong>. Heavy freight must take the peripheral bypass corridors.</p>
+            </div>
+        `;
+    }
+}
+
 // RENDER COMMERCIAL DISPATCH MANIFEST MODAL
 function renderManifestModal(data) {
-    const serial = `MANIFEST-MMRDA-${Date.now().toString().slice(-6)}`;
+    const isPune = state.selectedRegion === "PUNE_PMC";
+    const serial = `MANIFEST-${isPune ? "PMC" : "MMRDA"}-${Date.now().toString().slice(-6)}`;
     document.getElementById("manifestSerialId").textContent = serial;
 
     const departureClock = document.getElementById("clockDisplay")?.textContent || "08:30 AM";
@@ -1433,8 +1666,8 @@ function renderManifestModal(data) {
         <div class="manifest-header-block">
             <div class="manifest-meta-col">
                 <strong>RouteOpt Commercial Fleet Dispatch Manifest</strong>
-                <span>Region: Mumbai Metropolitan Region (MMRDA / Police Traffic Branch)</span>
-                <span>Operating Hub: ${state.depot?.name || "Bhiwandi Central Freight Hub"}</span>
+                <span>Region: ${isPune ? "Pune Metropolitan Region (PMC / Pune Traffic Police)" : "Mumbai Metropolitan Region (MMRDA / Police Traffic Branch)"}</span>
+                <span>Operating Hub: ${state.depot?.name || (isPune ? "Bhosari-Chakan MIDC Freight Terminal" : "Bhiwandi Central Freight Hub")}</span>
             </div>
             <div class="manifest-meta-col" style="text-align: right;">
                 <div class="manifest-badge-legal">

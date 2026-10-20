@@ -34,6 +34,25 @@ def test_regional_regulations_no_entry_window():
     assert is_banned is True
     assert "Evening Peak" in name
 
+def test_pune_pmc_regulations():
+    engine = RegionalRegulationEngine("PUNE_PMC")
+    assert engine.violation_fine_inr == 15000.0
+    assert engine.bridge_gvw_limit_tonnes == 5.0
+    
+    # 10:00 AM = 36000s (inside Pune morning ban 09:00 - 12:00)
+    is_banned, name = engine.check_time_in_no_entry_window(36000)
+    assert is_banned is True
+    assert "Pune PMC Morning Peak" in name
+
+    # 13:00 PM (1:00 PM) = 46800s (open window)
+    is_banned, name = engine.check_time_in_no_entry_window(46800)
+    assert is_banned is False
+
+    # 18:00 PM (6:00 PM) = 64800s (inside Pune evening ban 16:30 - 20:30)
+    is_banned, name = engine.check_time_in_no_entry_window(64800)
+    assert is_banned is True
+    assert "Pune PMC Evening Peak" in name
+
 def test_flyover_height_clearance():
     engine = RegionalRegulationEngine()
     # Truck with 3.2m height attempting to take 2.5m flyover
