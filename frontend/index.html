@@ -121,7 +121,35 @@
                             <span class="card-title"><i class="fa-solid fa-location-dot"></i> Delivery Drops & Warehouse</span>
                             <span class="badge" id="stopsCount">0 stops</span>
                         </div>
-                        <p class="field-hint">Point 1 is the warehouse hub. Click on the map to add more drop points.</p>
+                        <!-- Benchmark Scale Selector Chips (6, 10, 20, 30 Drops) -->
+                        <div class="scale-chips-row">
+                            <span class="scale-label">Benchmark Scale:</span>
+                            <button type="button" class="btn-scale-chip active" data-scale="6">6 Drops</button>
+                            <button type="button" class="btn-scale-chip" data-scale="10">10 Drops</button>
+                            <button type="button" class="btn-scale-chip" data-scale="20">20 Drops</button>
+                            <button type="button" class="btn-scale-chip" data-scale="30">30 Drops</button>
+                        </div>
+
+                        <!-- Manual Add Freight Hub Row -->
+                        <div class="manual-add-row">
+                            <select id="quickSelectHub" class="quick-hub-select">
+                                <option value="">-- Quick-Add Logistics Hub --</option>
+                                <option value="KALAMBOLI">Kalamboli Steel Market (900 kg)</option>
+                                <option value="TALOJA">Taloja MIDC Industrial Hub (850 kg)</option>
+                                <option value="WADALA">Wadala Truck Terminal (700 kg)</option>
+                                <option value="TURBHE">Turbhe Freight Terminal (650 kg)</option>
+                                <option value="PANVEL">Panvel JNPT Bypass (950 kg)</option>
+                                <option value="KURLA">Kurla Kamani Industrial (400 kg)</option>
+                                <option value="GOREGAON">Goregaon NESCO Logistics (450 kg)</option>
+                                <option value="LOWER_PAREL">Lower Parel Commercial Dock (350 kg)</option>
+                                <option value="BORIVALI">Borivali Link Road Center (500 kg)</option>
+                                <option value="MAHAPE">Mahape Millennium Business Park (500 kg)</option>
+                            </select>
+                            <button type="button" class="btn btn-secondary btn-sm" id="btnQuickAddHub" title="Add freight hub to route">
+                                <i class="fa-solid fa-plus"></i> Add
+                            </button>
+                        </div>
+                        <p class="field-hint">Click on map or select above to add stops. Click <i class="fa-solid fa-xmark"></i> on any stop to remove it.</p>
 
                         <div class="stop-list-container" id="locationList">
                             <div class="empty-state">

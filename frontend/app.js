@@ -108,83 +108,361 @@ const REGULATORY_BARRIERS = [
     }
 ];
 
-// Preset Mumbai Transport Dataset
-const MUMBAI_PRESET = {
-    depot: {
-        depot_id: "DEPOT-BHIWANDI",
-        name: "Bhiwandi Central Freight Hub",
-        lat: 19.2967,
-        lon: 73.0631,
-        operating_hours_sec: 43200
+// Master Central Hub
+const MUMBAI_PRESET_DEPOT = {
+    depot_id: "DEPOT-BHIWANDI",
+    name: "Bhiwandi Central Freight Hub",
+    lat: 19.2967,
+    lon: 73.0631,
+    operating_hours_sec: 43200
+};
+
+// 30 Commercial Delivery Drops across Mumbai, Navi Mumbai, and Thane
+const MUMBAI_ALL_STOPS = [
+    {
+        stop_id: "STOP-01",
+        name: "Mulund Commercial Checkpost",
+        lat: 19.1726,
+        lon: 72.9565,
+        demand_kg: 450,
+        time_window_start_sec: 0,
+        time_window_end_sec: 36000,
+        service_duration_sec: 600,
+        is_in_restricted_urban_core: true
     },
-    stops: [
-        {
-            stop_id: "STOP-01",
-            name: "Mulund Commercial Checkpost",
-            lat: 19.1726,
-            lon: 72.9565,
-            demand_kg: 450,
-            time_window_start_sec: 0,
-            time_window_end_sec: 36000,
-            service_duration_sec: 600,
-            is_in_restricted_urban_core: true
-        },
-        {
-            stop_id: "STOP-02",
-            name: "Dadar Wholesale Goods Market",
-            lat: 19.0178,
-            lon: 72.8478,
-            demand_kg: 600,
-            time_window_start_sec: 1800,
-            time_window_end_sec: 43200,
-            service_duration_sec: 900,
-            is_in_restricted_urban_core: true
-        },
-        {
-            stop_id: "STOP-03",
-            name: "Bandra Kurla Complex (BKC) Bay",
-            lat: 19.0674,
-            lon: 72.8687,
-            demand_kg: 350,
-            time_window_start_sec: 3600,
-            time_window_end_sec: 36000,
-            service_duration_sec: 450,
-            is_in_restricted_urban_core: true
-        },
-        {
-            stop_id: "STOP-04",
-            name: "Andheri East MIDC Industrial Estate",
-            lat: 19.1136,
-            lon: 72.8697,
-            demand_kg: 500,
-            time_window_start_sec: 1800,
-            time_window_end_sec: 43200,
-            service_duration_sec: 600,
-            is_in_restricted_urban_core: true
-        },
-        {
-            stop_id: "STOP-05",
-            name: "Vashi APMC Freight Hub (Navi Mumbai)",
-            lat: 19.0760,
-            lon: 72.9986,
-            demand_kg: 800,
-            time_window_start_sec: 0,
-            time_window_end_sec: 43200,
-            service_duration_sec: 750,
-            is_in_restricted_urban_core: false
-        },
-        {
-            stop_id: "STOP-06",
-            name: "Thane West Distribution Warehouse",
-            lat: 19.2183,
-            lon: 72.9781,
-            demand_kg: 300,
-            time_window_start_sec: 0,
-            time_window_end_sec: 43200,
-            service_duration_sec: 300,
-            is_in_restricted_urban_core: false
-        }
-    ]
+    {
+        stop_id: "STOP-02",
+        name: "Dadar Wholesale Goods Market",
+        lat: 19.0178,
+        lon: 72.8478,
+        demand_kg: 600,
+        time_window_start_sec: 1800,
+        time_window_end_sec: 43200,
+        service_duration_sec: 900,
+        is_in_restricted_urban_core: true
+    },
+    {
+        stop_id: "STOP-03",
+        name: "Bandra Kurla Complex (BKC) Bay",
+        lat: 19.0674,
+        lon: 72.8687,
+        demand_kg: 350,
+        time_window_start_sec: 3600,
+        time_window_end_sec: 36000,
+        service_duration_sec: 450,
+        is_in_restricted_urban_core: true
+    },
+    {
+        stop_id: "STOP-04",
+        name: "Andheri East MIDC Industrial Estate",
+        lat: 19.1136,
+        lon: 72.8697,
+        demand_kg: 500,
+        time_window_start_sec: 1800,
+        time_window_end_sec: 43200,
+        service_duration_sec: 600,
+        is_in_restricted_urban_core: true
+    },
+    {
+        stop_id: "STOP-05",
+        name: "Vashi APMC Freight Hub (Navi Mumbai)",
+        lat: 19.0760,
+        lon: 72.9986,
+        demand_kg: 800,
+        time_window_start_sec: 0,
+        time_window_end_sec: 43200,
+        service_duration_sec: 750,
+        is_in_restricted_urban_core: false
+    },
+    {
+        stop_id: "STOP-06",
+        name: "Thane West Distribution Warehouse",
+        lat: 19.2183,
+        lon: 72.9781,
+        demand_kg: 300,
+        time_window_start_sec: 0,
+        time_window_end_sec: 43200,
+        service_duration_sec: 300,
+        is_in_restricted_urban_core: false
+    },
+    {
+        stop_id: "STOP-07",
+        name: "Kalamboli Steel Market (Navi Mumbai)",
+        lat: 19.0222,
+        lon: 73.0988,
+        demand_kg: 900,
+        time_window_start_sec: 1800,
+        time_window_end_sec: 43200,
+        service_duration_sec: 900,
+        is_in_restricted_urban_core: false
+    },
+    {
+        stop_id: "STOP-08",
+        name: "Kurla West Kamani Industrial Area",
+        lat: 19.0728,
+        lon: 72.8795,
+        demand_kg: 400,
+        time_window_start_sec: 1800,
+        time_window_end_sec: 36000,
+        service_duration_sec: 500,
+        is_in_restricted_urban_core: true
+    },
+    {
+        stop_id: "STOP-09",
+        name: "Goregaon East NESCO Logistics Bay",
+        lat: 19.1553,
+        lon: 72.8550,
+        demand_kg: 450,
+        time_window_start_sec: 3600,
+        time_window_end_sec: 43200,
+        service_duration_sec: 450,
+        is_in_restricted_urban_core: true
+    },
+    {
+        stop_id: "STOP-10",
+        name: "Lower Parel Sun Mill Commercial Docks",
+        lat: 18.9950,
+        lon: 72.8290,
+        demand_kg: 350,
+        time_window_start_sec: 1800,
+        time_window_end_sec: 36000,
+        service_duration_sec: 600,
+        is_in_restricted_urban_core: true
+    },
+    {
+        stop_id: "STOP-11",
+        name: "Taloja MIDC Heavy Industrial Zone",
+        lat: 19.0620,
+        lon: 73.1380,
+        demand_kg: 850,
+        time_window_start_sec: 0,
+        time_window_end_sec: 43200,
+        service_duration_sec: 800,
+        is_in_restricted_urban_core: false
+    },
+    {
+        stop_id: "STOP-12",
+        name: "Chembur Diamond Garden Distribution",
+        lat: 19.0520,
+        lon: 72.8980,
+        demand_kg: 300,
+        time_window_start_sec: 1800,
+        time_window_end_sec: 36000,
+        service_duration_sec: 400,
+        is_in_restricted_urban_core: true
+    },
+    {
+        stop_id: "STOP-13",
+        name: "Borivali West Link Road Center",
+        lat: 19.2300,
+        lon: 72.8480,
+        demand_kg: 500,
+        time_window_start_sec: 3600,
+        time_window_end_sec: 43200,
+        service_duration_sec: 500,
+        is_in_restricted_urban_core: true
+    },
+    {
+        stop_id: "STOP-14",
+        name: "Turbhe MIDC Freight Terminal",
+        lat: 19.0710,
+        lon: 73.0230,
+        demand_kg: 650,
+        time_window_start_sec: 0,
+        time_window_end_sec: 43200,
+        service_duration_sec: 600,
+        is_in_restricted_urban_core: false
+    },
+    {
+        stop_id: "STOP-15",
+        name: "Byculla Cotton Exchange Docks",
+        lat: 18.9750,
+        lon: 72.8360,
+        demand_kg: 400,
+        time_window_start_sec: 1800,
+        time_window_end_sec: 36000,
+        service_duration_sec: 550,
+        is_in_restricted_urban_core: true
+    },
+    {
+        stop_id: "STOP-16",
+        name: "Kanjurmarg East LBS Logistics Center",
+        lat: 19.1320,
+        lon: 72.9340,
+        demand_kg: 350,
+        time_window_start_sec: 0,
+        time_window_end_sec: 43200,
+        service_duration_sec: 450,
+        is_in_restricted_urban_core: true
+    },
+    {
+        stop_id: "STOP-17",
+        name: "Malad West Infinity Logistics Bay",
+        lat: 19.1840,
+        lon: 72.8350,
+        demand_kg: 450,
+        time_window_start_sec: 1800,
+        time_window_end_sec: 36000,
+        service_duration_sec: 500,
+        is_in_restricted_urban_core: true
+    },
+    {
+        stop_id: "STOP-18",
+        name: "Panvel JNPT Bypass Cargo Hub",
+        lat: 18.9920,
+        lon: 73.1180,
+        demand_kg: 950,
+        time_window_start_sec: 0,
+        time_window_end_sec: 43200,
+        service_duration_sec: 900,
+        is_in_restricted_urban_core: false
+    },
+    {
+        stop_id: "STOP-19",
+        name: "Ghatkopar East Pant Nagar Depo",
+        lat: 19.0860,
+        lon: 72.9150,
+        demand_kg: 400,
+        time_window_start_sec: 1800,
+        time_window_end_sec: 36000,
+        service_duration_sec: 400,
+        is_in_restricted_urban_core: true
+    },
+    {
+        stop_id: "STOP-20",
+        name: "Belapur CBD Commercial Sector 11",
+        lat: 19.0180,
+        lon: 73.0390,
+        demand_kg: 500,
+        time_window_start_sec: 1800,
+        time_window_end_sec: 43200,
+        service_duration_sec: 500,
+        is_in_restricted_urban_core: false
+    },
+    {
+        stop_id: "STOP-21",
+        name: "Dahisar West Anand Nagar Checkpost",
+        lat: 19.2550,
+        lon: 72.8590,
+        demand_kg: 350,
+        time_window_start_sec: 0,
+        time_window_end_sec: 36000,
+        service_duration_sec: 400,
+        is_in_restricted_urban_core: true
+    },
+    {
+        stop_id: "STOP-22",
+        name: "Wadala Truck Terminal Corridor",
+        lat: 19.0280,
+        lon: 72.8750,
+        demand_kg: 700,
+        time_window_start_sec: 0,
+        time_window_end_sec: 43200,
+        service_duration_sec: 700,
+        is_in_restricted_urban_core: true
+    },
+    {
+        stop_id: "STOP-23",
+        name: "Worli Naka Commercial Fulfillment",
+        lat: 19.0060,
+        lon: 72.8180,
+        demand_kg: 300,
+        time_window_start_sec: 3600,
+        time_window_end_sec: 36000,
+        service_duration_sec: 450,
+        is_in_restricted_urban_core: true
+    },
+    {
+        stop_id: "STOP-24",
+        name: "Rabale MIDC Industrial Corridor",
+        lat: 19.1380,
+        lon: 73.0080,
+        demand_kg: 600,
+        time_window_start_sec: 0,
+        time_window_end_sec: 43200,
+        service_duration_sec: 600,
+        is_in_restricted_urban_core: false
+    },
+    {
+        stop_id: "STOP-25",
+        name: "Mahim West Retail Depot",
+        lat: 19.0380,
+        lon: 72.8420,
+        demand_kg: 400,
+        time_window_start_sec: 1800,
+        time_window_end_sec: 36000,
+        service_duration_sec: 500,
+        is_in_restricted_urban_core: true
+    },
+    {
+        stop_id: "STOP-26",
+        name: "Bhandup West Industrial Estate",
+        lat: 19.1500,
+        lon: 72.9350,
+        demand_kg: 350,
+        time_window_start_sec: 1800,
+        time_window_end_sec: 43200,
+        service_duration_sec: 400,
+        is_in_restricted_urban_core: true
+    },
+    {
+        stop_id: "STOP-27",
+        name: "Nerul MIDC Sector 20 Hub",
+        lat: 19.0340,
+        lon: 73.0210,
+        demand_kg: 550,
+        time_window_start_sec: 0,
+        time_window_end_sec: 43200,
+        service_duration_sec: 500,
+        is_in_restricted_urban_core: false
+    },
+    {
+        stop_id: "STOP-28",
+        name: "Jogeshwari West S.V. Road Docks",
+        lat: 19.1380,
+        lon: 72.8470,
+        demand_kg: 400,
+        time_window_start_sec: 1800,
+        time_window_end_sec: 36000,
+        service_duration_sec: 450,
+        is_in_restricted_urban_core: true
+    },
+    {
+        stop_id: "STOP-29",
+        name: "Mahape Millennium Business Park",
+        lat: 19.1080,
+        lon: 73.0180,
+        demand_kg: 500,
+        time_window_start_sec: 0,
+        time_window_end_sec: 43200,
+        service_duration_sec: 500,
+        is_in_restricted_urban_core: false
+    },
+    {
+        stop_id: "STOP-30",
+        name: "Colaba Marine Lines Distribution Point",
+        lat: 18.9380,
+        lon: 72.8280,
+        demand_kg: 450,
+        time_window_start_sec: 3600,
+        time_window_end_sec: 36000,
+        service_duration_sec: 600,
+        is_in_restricted_urban_core: true
+    }
+];
+
+// Quick-Add Logistics Hubs Lookup
+const QUICK_HUBS = {
+    KALAMBOLI: { name: "Kalamboli Steel Market", lat: 19.0222, lon: 73.0988, demand_kg: 900, is_restricted: false },
+    TALOJA: { name: "Taloja MIDC Industrial Hub", lat: 19.0620, lon: 73.1380, demand_kg: 850, is_restricted: false },
+    WADALA: { name: "Wadala Truck Terminal", lat: 19.0280, lon: 72.8750, demand_kg: 700, is_restricted: true },
+    TURBHE: { name: "Turbhe Freight Terminal", lat: 19.0710, lon: 73.0230, demand_kg: 650, is_restricted: false },
+    PANVEL: { name: "Panvel JNPT Bypass Hub", lat: 18.9920, lon: 73.1180, demand_kg: 950, is_restricted: false },
+    KURLA: { name: "Kurla Kamani Industrial", lat: 19.0728, lon: 72.8795, demand_kg: 400, is_restricted: true },
+    GOREGAON: { name: "Goregaon NESCO Logistics", lat: 19.1553, lon: 72.8550, demand_kg: 450, is_restricted: true },
+    LOWER_PAREL: { name: "Lower Parel Commercial Dock", lat: 18.9950, lon: 72.8290, demand_kg: 350, is_restricted: true },
+    BORIVALI: { name: "Borivali Link Road Center", lat: 19.2300, lon: 72.8480, demand_kg: 500, is_restricted: true },
+    MAHAPE: { name: "Mahape Millennium Business Park", lat: 19.1080, lon: 73.0180, demand_kg: 500, is_restricted: false }
 };
 
 // Initialize Application
@@ -247,9 +525,9 @@ function initEventListeners() {
         updateClockDisplay(state.departureHour);
     });
 
-    // Vehicle Counter Controls
+    // Vehicle Counter Controls (Expanded to 12 Vans and 8 Trucks)
     document.getElementById("btnIncVan").addEventListener("click", () => {
-        state.fleet.vans = Math.min(6, state.fleet.vans + 1);
+        state.fleet.vans = Math.min(12, state.fleet.vans + 1);
         document.getElementById("vanCount").textContent = state.fleet.vans;
         updateFleetSummary();
     });
@@ -260,7 +538,7 @@ function initEventListeners() {
     });
 
     document.getElementById("btnIncTruck").addEventListener("click", () => {
-        state.fleet.trucks = Math.min(4, state.fleet.trucks + 1);
+        state.fleet.trucks = Math.min(8, state.fleet.trucks + 1);
         document.getElementById("truckCount").textContent = state.fleet.trucks;
         updateFleetSummary();
     });
@@ -271,8 +549,57 @@ function initEventListeners() {
     });
 
     // Preset & Reset
-    document.getElementById("loadSampleBtn").addEventListener("click", loadMumbaiPreset);
+    document.getElementById("loadSampleBtn")?.addEventListener("click", () => loadDatasetScale(6));
     document.getElementById("clearBtn").addEventListener("click", clearAll);
+
+    // Benchmark Scale Chips (6, 10, 20, 30 Drops)
+    document.querySelectorAll(".btn-scale-chip").forEach(chip => {
+        chip.addEventListener("click", () => {
+            const scale = parseInt(chip.dataset.scale, 10) || 6;
+            loadDatasetScale(scale);
+        });
+    });
+
+    // Manual Quick-Add Logistics Hub Dropdown
+    document.getElementById("btnQuickAddHub")?.addEventListener("click", () => {
+        const select = document.getElementById("quickSelectHub");
+        const key = select.value;
+        if (!key || !QUICK_HUBS[key]) {
+            showToast("Please choose a freight hub from the dropdown list.", "warning");
+            return;
+        }
+
+        if (!state.depot) {
+            state.depot = { ...MUMBAI_PRESET_DEPOT };
+        }
+
+        const hub = QUICK_HUBS[key];
+        const idx = state.stops.length + 1;
+        state.stops.push({
+            stop_id: `STOP-${String(idx).padStart(2, "0")}`,
+            name: hub.name,
+            lat: hub.lat,
+            lon: hub.lon,
+            demand_kg: hub.demand_kg,
+            time_window_start_sec: 0,
+            time_window_end_sec: 43200,
+            service_duration_sec: 600,
+            is_in_restricted_urban_core: hub.is_restricted
+        });
+
+        select.value = "";
+        stopRouteAnimation();
+        state.currentRoutes = [];
+        state.routesLayer.clearLayers();
+        document.getElementById("itineraryTabBtn").disabled = true;
+        document.getElementById("mapMetricsBar").classList.add("hidden");
+        document.getElementById("mapAnimBar").classList.add("hidden");
+
+        renderLocationsList();
+        renderMapMarkers();
+        updateFleetSummary();
+        showToast(`Added ${hub.name} (Drop #${idx})`, "success");
+    });
 
     // Optimize Button
     document.getElementById("optimizeBtn").addEventListener("click", optimizeRoutes);
@@ -421,16 +748,75 @@ function updateFleetSummary() {
     optimizeBtn.disabled = !(hasVehicles && hasStops);
 }
 
-// Load Mumbai Logistics Preset
-function loadMumbaiPreset() {
+// Load Mumbai Logistics Dataset at Specific Benchmark Scale (6, 10, 20, 30 Drops)
+function loadDatasetScale(scale = 6) {
     stopRouteAnimation();
-    state.depot = { ...MUMBAI_PRESET.depot };
-    state.stops = JSON.parse(JSON.stringify(MUMBAI_PRESET.stops));
+    state.currentRoutes = [];
+    state.routesLayer.clearLayers();
+    document.getElementById("itineraryTabBtn").disabled = true;
+    document.getElementById("mapMetricsBar").classList.add("hidden");
+    document.getElementById("mapAnimBar").classList.add("hidden");
+
+    state.depot = { ...MUMBAI_PRESET_DEPOT };
+    const sliceCount = Math.min(scale, MUMBAI_ALL_STOPS.length);
+    state.stops = JSON.parse(JSON.stringify(MUMBAI_ALL_STOPS.slice(0, sliceCount)));
+
+    // Scale recommended fleet capacity dynamically
+    if (scale <= 6) {
+        state.fleet.vans = 2;
+        state.fleet.trucks = 1;
+    } else if (scale <= 10) {
+        state.fleet.vans = 3;
+        state.fleet.trucks = 2;
+    } else if (scale <= 20) {
+        state.fleet.vans = 4;
+        state.fleet.trucks = 3;
+    } else {
+        state.fleet.vans = 6;
+        state.fleet.trucks = 4;
+    }
+
+    document.getElementById("vanCount").textContent = state.fleet.vans;
+    document.getElementById("truckCount").textContent = state.fleet.trucks;
+
+    // Highlight active scale chip
+    document.querySelectorAll(".btn-scale-chip").forEach(chip => {
+        if (parseInt(chip.dataset.scale, 10) === scale) {
+            chip.classList.add("active");
+        } else {
+            chip.classList.remove("active");
+        }
+    });
+
     renderLocationsList();
     renderMapMarkers();
     updateFleetSummary();
-    showToast("Loaded Mumbai transport dataset (Bhiwandi Hub and 6 drop locations)", "success");
+    showToast(`Loaded ${sliceCount} commercial drops (Fleet: ${state.fleet.vans} Vans, ${state.fleet.trucks} Trucks)`, "success");
 }
+
+function loadMumbaiPreset() {
+    loadDatasetScale(6);
+}
+
+// Remove an Individual Destination Stop
+function removeStopByIndex(index) {
+    if (index < 0 || index >= state.stops.length) return;
+    const removed = state.stops.splice(index, 1)[0];
+    
+    // Stop ongoing animation and invalidate stale route display
+    stopRouteAnimation();
+    state.currentRoutes = [];
+    state.routesLayer.clearLayers();
+    document.getElementById("itineraryTabBtn").disabled = true;
+    document.getElementById("mapMetricsBar").classList.add("hidden");
+    document.getElementById("mapAnimBar").classList.add("hidden");
+
+    renderLocationsList();
+    renderMapMarkers();
+    updateFleetSummary();
+    showToast(`Removed "${removed.name}"`, "info");
+}
+window.removeStopByIndex = removeStopByIndex;
 
 // Clear All Stops
 function clearAll() {
@@ -463,23 +849,23 @@ function handleMapClick(lat, lon) {
         const idx = state.stops.length + 1;
         state.stops.push({
             stop_id: `STOP-${String(idx).padStart(2, "0")}`,
-            name: `Delivery Drop Point ${idx}`,
+            name: `Custom Drop Location ${idx}`,
             lat: lat,
             lon: lon,
             demand_kg: 400,
             time_window_start_sec: 0,
             time_window_end_sec: 43200,
             service_duration_sec: 600,
-            is_in_restricted_urban_core: true
+            is_in_restricted_urban_core: lat < 19.20 && lon < 72.95 // heuristic for Mumbai urban core
         });
-        showToast(`Added Drop Point ${idx}`, "success");
+        showToast(`Added Drop Point ${idx} at [${lat.toFixed(3)}, ${lon.toFixed(3)}]`, "success");
     }
     renderLocationsList();
     renderMapMarkers();
     updateFleetSummary();
 }
 
-// Render Locations List in Sidebar
+// Render Locations List in Sidebar with Individual Remove Buttons
 function renderLocationsList() {
     const list = document.getElementById("locationList");
     const stopsCount = document.getElementById("stopsCount");
@@ -490,11 +876,11 @@ function renderLocationsList() {
                 <i class="fa-solid fa-map"></i>
                 <p>No delivery locations loaded.</p>
                 <button class="btn btn-secondary btn-sm" id="loadSampleBtnInline">
-                    <i class="fa-solid fa-download"></i> Load Mumbai Transport Dataset
+                    <i class="fa-solid fa-download"></i> Load 6 Benchmark Drops
                 </button>
             </div>
         `;
-        document.getElementById("loadSampleBtnInline")?.addEventListener("click", loadMumbaiPreset);
+        document.getElementById("loadSampleBtnInline")?.addEventListener("click", () => loadDatasetScale(6));
         stopsCount.textContent = "0 stops";
         return;
     }
@@ -515,7 +901,7 @@ function renderLocationsList() {
     }
 
     state.stops.forEach((s, i) => {
-        const zoneText = s.is_in_restricted_urban_core ? "City Core (Restricted)" : "Outer Highway";
+        const zoneText = s.is_in_restricted_urban_core ? "City Core (Restricted)" : "Outer Arterial";
         html += `
             <div class="stop-card">
                 <div class="stop-badge-num">${i + 1}</div>
@@ -523,14 +909,26 @@ function renderLocationsList() {
                     <div class="stop-meta-name">${s.name}</div>
                     <div class="stop-meta-info">Load: ${s.demand_kg} kg | Unload: ${Math.round(s.service_duration_sec / 60)} mins | ${zoneText}</div>
                 </div>
+                <button type="button" class="btn-stop-remove" data-index="${i}" title="Remove this destination">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
             </div>
         `;
     });
 
     list.innerHTML = html;
+
+    // Attach individual remove click handlers
+    list.querySelectorAll(".btn-stop-remove").forEach(btn => {
+        btn.addEventListener("click", (e) => {
+            e.stopPropagation();
+            const idx = parseInt(btn.dataset.index, 10);
+            removeStopByIndex(idx);
+        });
+    });
 }
 
-// Render Map Markers
+// Render Map Markers with Popup Remove Action
 function renderMapMarkers() {
     state.markersLayer.clearLayers();
     const bounds = [];
@@ -543,7 +941,7 @@ function renderMapMarkers() {
             iconAnchor: [16, 16]
         });
         const marker = L.marker([state.depot.lat, state.depot.lon], { icon: depotIcon })
-            .bindPopup(`<strong>${state.depot.name}</strong><br>Warehouse Hub`);
+            .bindPopup(`<strong>${state.depot.name}</strong><br>Warehouse Hub (Start & Return Point)`);
         state.markersLayer.addLayer(marker);
         bounds.push([state.depot.lat, state.depot.lon]);
     }
@@ -556,7 +954,18 @@ function renderMapMarkers() {
             iconAnchor: [13, 13]
         });
         const marker = L.marker([s.lat, s.lon], { icon: stopIcon })
-            .bindPopup(`<strong>Stop ${i + 1}: ${s.name}</strong><br>Weight: ${s.demand_kg} kg<br>Zone: ${s.is_in_restricted_urban_core ? "City Core" : "Outer Arterial"}`);
+            .bindPopup(`
+                <div style="font-size:12px; line-height:1.4;">
+                    <strong>Stop ${i + 1}: ${s.name}</strong><br>
+                    <span>Load: ${s.demand_kg} kg | Unload: ${Math.round(s.service_duration_sec / 60)} mins</span><br>
+                    <span>Zone: ${s.is_in_restricted_urban_core ? "City Core (Restricted)" : "Outer Arterial"}</span>
+                    <div style="margin-top:6px; padding-top:4px; border-top:1px solid #334155;">
+                        <button type="button" class="btn btn-outline btn-xs" style="color:#ef4444; border-color:rgba(239,68,68,0.5); padding:2px 8px; font-size:10px; cursor:pointer;" onclick="window.removeStopByIndex(${i})">
+                            <i class="fa-solid fa-trash-can"></i> Remove Drop
+                        </button>
+                    </div>
+                </div>
+            `);
         state.markersLayer.addLayer(marker);
         bounds.push([s.lat, s.lon]);
     });
