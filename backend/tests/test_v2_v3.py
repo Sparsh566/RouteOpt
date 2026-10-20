@@ -53,6 +53,25 @@ def test_pune_pmc_regulations():
     assert is_banned is True
     assert "Pune PMC Evening Peak" in name
 
+def test_nagpur_nmc_regulations():
+    engine = RegionalRegulationEngine("NAGPUR_NMC")
+    assert engine.violation_fine_inr == 10000.0
+    assert engine.bridge_gvw_limit_tonnes == 5.0
+    
+    # 09:30 AM = 34200s (inside Nagpur morning ban 08:30 - 11:30)
+    is_banned, name = engine.check_time_in_no_entry_window(34200)
+    assert is_banned is True
+    assert "Nagpur NMC Morning Peak" in name
+
+    # 14:00 PM (2:00 PM) = 50400s (open window)
+    is_banned, name = engine.check_time_in_no_entry_window(50400)
+    assert is_banned is False
+
+    # 19:00 PM (7:00 PM) = 68400s (inside Nagpur evening ban 17:30 - 21:00)
+    is_banned, name = engine.check_time_in_no_entry_window(68400)
+    assert is_banned is True
+    assert "Nagpur NMC Evening Peak" in name
+
 def test_flyover_height_clearance():
     engine = RegionalRegulationEngine()
     # Truck with 3.2m height attempting to take 2.5m flyover

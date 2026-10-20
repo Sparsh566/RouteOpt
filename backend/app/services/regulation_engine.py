@@ -10,7 +10,20 @@ class RegionalRegulationEngine:
     def __init__(self, region: str = "MUMBAI_MMRDA"):
         self.region = (region or "MUMBAI_MMRDA").upper()
         
-        if "PUNE" in self.region:
+        if "NAGPUR" in self.region:
+            # Nagpur Municipal Corporation (NMC) Regulations
+            # Morning ban: 08:30 AM (30600s) to 11:30 AM (41400s)
+            self.morning_ban_start = 30600
+            self.morning_ban_end = 41400
+            # Evening ban: 05:30 PM (63000s) to 09:00 PM (75600s)
+            self.evening_ban_start = 63000
+            self.evening_ban_end = 75600
+            self.flyover_height_limit_m = 2.5
+            self.bridge_gvw_limit_tonnes = 5.0
+            self.violation_fine_inr = 10000.0
+            self.morning_ban_label = "Nagpur NMC Morning Peak HCV Ban (08:30 AM - 11:30 AM)"
+            self.evening_ban_label = "Nagpur NMC Evening Peak HCV Ban (05:30 PM - 09:00 PM)"
+        elif "PUNE" in self.region:
             # Pune Municipal Corporation (PMC) Regulations
             # Morning ban: 09:00 AM (32400s) to 12:00 PM (43200s)
             self.morning_ban_start = 32400
@@ -61,6 +74,30 @@ class RegionalRegulationEngine:
         return True, None
 
     def get_guideline_summary(self) -> Dict[str, Any]:
+        if "NAGPUR" in self.region:
+            return {
+                "region": "NAGPUR_NMC",
+                "rules": [
+                    {
+                        "title": "Nagpur NMC Core Peak-Hour Heavy Vehicle Restriction",
+                        "applies_to": "Heavy Freight Trucks (MCV/HCV > 5.0T GVW)",
+                        "restricted_hours": ["08:30 AM - 11:30 AM", "05:30 PM - 09:00 PM"],
+                        "exempt_vehicles": "Delivery Vans (LCVs < 3.5T GVW like Tata Ace)",
+                        "penalty": f"₹{self.violation_fine_inr:,.0f} fine + impoundment under Sec 115 MVA"
+                    },
+                    {
+                        "title": "Ram Jhula & Itwari Overbridge Weight Limits",
+                        "applies_to": "Vehicles exceeding 5.0T Gross Vehicle Weight",
+                        "impact": "Mandatory bypass via Outer Ring Road or Kamptee Road arterial"
+                    },
+                    {
+                        "title": "Sitabuldi Metro Flyover Overhead Gantry",
+                        "applies_to": "All Commercial Vehicles > 2.5m height",
+                        "impact": "Heavy freight trucks diverted to ground-level Wardha Road surface corridor"
+                    }
+                ]
+            }
+
         if "PUNE" in self.region:
             return {
                 "region": "PUNE_PMC",

@@ -62,6 +62,18 @@ const PUNE_GEOFENCE_COORDS = [
     [18.5650, 73.8300]  // Back to University
 ];
 
+// Nagpur Municipal Corporation (NMC) Regulatory Central Core Geofence
+const NAGPUR_GEOFENCE_COORDS = [
+    [21.1750, 79.0750], // Sadar / Raj Bhavan North
+    [21.1700, 79.1150], // Pachpaoli / Shanti Nagar East
+    [21.1550, 79.1250], // Itwari Wholesale / Maskasath
+    [21.1350, 79.1150], // Mahal / Kotwali South-East
+    [21.1250, 79.0850], // Dhantoli / Rahate Colony South
+    [21.1350, 79.0550], // Dharampeth / Shankar Nagar West
+    [21.1600, 79.0600], // Law College / Seminary Hills North-West
+    [21.1750, 79.0750]  // Back to Sadar
+];
+
 // Structural Road Barriers (Mumbai)
 const MUMBAI_BARRIERS = [
     {
@@ -181,6 +193,69 @@ const PUNE_ALL_STOPS = [
     { stop_id: "PUNE-08", name: "Katraj South Freight Corridor", lat: 18.4575, lon: 73.8677, demand_kg: 500, time_window_start_sec: 1800, time_window_end_sec: 43200, service_duration_sec: 500, is_in_restricted_urban_core: false },
     { stop_id: "PUNE-09", name: "Wagholi Nagar Road Freight Bay", lat: 18.5810, lon: 73.9820, demand_kg: 400, time_window_start_sec: 0, time_window_end_sec: 43200, service_duration_sec: 400, is_in_restricted_urban_core: false },
     { stop_id: "PUNE-10", name: "Deccan Gymkhana Retail Center", lat: 18.5180, lon: 73.8390, demand_kg: 300, time_window_start_sec: 3600, time_window_end_sec: 36000, service_duration_sec: 450, is_in_restricted_urban_core: true }
+];
+
+// Structural Road Barriers (Nagpur)
+const NAGPUR_BARRIERS = [
+    {
+        type: "bridge_weight",
+        name: "Ram Jhula Cable-Stayed Railway Overbridge",
+        lat: 21.1510,
+        lon: 79.0920,
+        weight_limit_t: 5.0,
+        rule_details: "5.0 Tonnes Gross Vehicle Weight limit on arterial railway flyover. Multi-axle trucks diverted to Central Avenue underpass.",
+        penalty: "Structural safety limit violation / Traffic police fine"
+    },
+    {
+        type: "height_gantry",
+        name: "Sitabuldi Metro Interchange Overhead Gantry",
+        lat: 21.1460,
+        lon: 79.0830,
+        height_limit_m: 2.5,
+        rule_details: "2.5m Steel Clearance Gantry on lower deck approach ramps. Trucks diverted to ground Wardha Road.",
+        penalty: "Gantry collision hazard / Rs 10,000 fine"
+    },
+    {
+        type: "height_gantry",
+        name: "Cotton Market Narrow Railway Subway",
+        lat: 21.1400,
+        lon: 79.0930,
+        height_limit_m: 2.5,
+        rule_details: "2.5m Height Barrier. Freight trucks must bypass via Ghat Road or Manewada arterial.",
+        penalty: "Low clearance subway strike hazard"
+    },
+    {
+        type: "bridge_weight",
+        name: "Itwari Old Marwari Bridge",
+        lat: 21.1560,
+        lon: 79.1150,
+        weight_limit_t: 5.0,
+        rule_details: "5.0 Tonnes Gross Vehicle Weight restriction on heritage market bridge.",
+        penalty: "Overweight axle breach on narrow market span"
+    }
+];
+
+// Master Central Hub (Nagpur)
+const NAGPUR_PRESET_DEPOT = {
+    depot_id: "DEPOT-MIHAN",
+    name: "MIHAN SEZ Multi-Modal Logistics Hub",
+    lat: 21.0500,
+    lon: 79.0300,
+    operating_hours_sec: 43200
+};
+
+// 10 Commercial Delivery Drops across Nagpur Metropolitan Area
+const NAGPUR_ALL_STOPS = [
+    { stop_id: "NGP-01", name: "Sitabuldi Main Retail Market", lat: 21.1458, lon: 79.0825, demand_kg: 500, time_window_start_sec: 0, time_window_end_sec: 36000, service_duration_sec: 600, is_in_restricted_urban_core: true },
+    { stop_id: "NGP-02", name: "Itwari Wholesale Cloth & Spice Bazaar", lat: 21.1550, lon: 79.1120, demand_kg: 600, time_window_start_sec: 1800, time_window_end_sec: 43200, service_duration_sec: 750, is_in_restricted_urban_core: true },
+    { stop_id: "NGP-03", name: "Cotton Market Agro & Freight Terminal", lat: 21.1410, lon: 79.0940, demand_kg: 550, time_window_start_sec: 0, time_window_end_sec: 36000, service_duration_sec: 600, is_in_restricted_urban_core: true },
+    { stop_id: "NGP-04", name: "Hingna MIDC Industrial Cluster", lat: 21.1150, lon: 78.9950, demand_kg: 750, time_window_start_sec: 1800, time_window_end_sec: 43200, service_duration_sec: 700, is_in_restricted_urban_core: false },
+    { stop_id: "NGP-05", name: "Butibori 5-Star Industrial Zone", lat: 20.9250, lon: 78.9900, demand_kg: 900, time_window_start_sec: 0, time_window_end_sec: 43200, service_duration_sec: 800, is_in_restricted_urban_core: false },
+    { stop_id: "NGP-06", name: "Dharampeth Commercial High Street", lat: 21.1420, lon: 79.0620, demand_kg: 350, time_window_start_sec: 3600, time_window_end_sec: 36000, service_duration_sec: 450, is_in_restricted_urban_core: true },
+    { stop_id: "NGP-07", name: "Gandhibagh Wholesale Goods Market", lat: 21.1500, lon: 79.1020, demand_kg: 450, time_window_start_sec: 1800, time_window_end_sec: 43200, service_duration_sec: 500, is_in_restricted_urban_core: true },
+    { stop_id: "NGP-08", name: "Wardha Road Metro Logistics Bay", lat: 21.0850, lon: 79.0650, demand_kg: 500, time_window_start_sec: 0, time_window_end_sec: 43200, service_duration_sec: 500, is_in_restricted_urban_core: false },
+    { stop_id: "NGP-09", name: "Wadi Transport Plaza (Amravati Rd)", lat: 21.1500, lon: 78.9900, demand_kg: 700, time_window_start_sec: 1800, time_window_end_sec: 43200, service_duration_sec: 600, is_in_restricted_urban_core: false },
+    { stop_id: "NGP-10", name: "Mahal Historic Commercial Quarter", lat: 21.1440, lon: 79.1100, demand_kg: 400, time_window_start_sec: 3600, time_window_end_sec: 36000, service_duration_sec: 500, is_in_restricted_urban_core: true }
 ];
 
 // Master Central Hub
@@ -552,14 +627,33 @@ const PUNE_QUICK_HUBS = {
     KOTHRUD: { name: "Kothrud Distribution Hub", lat: 18.5074, lon: 73.8077, demand_kg: 350, is_restricted: true }
 };
 
+// Quick-Add Logistics Hubs Lookup (Nagpur NMC)
+const NAGPUR_QUICK_HUBS = {
+    BUTIBORI: { name: "Butibori Heavy Freight Dock", lat: 20.9300, lon: 78.9950, demand_kg: 950, is_restricted: false },
+    MIHAN: { name: "MIHAN Cargo Terminal Bay", lat: 21.0450, lon: 79.0350, demand_kg: 900, is_restricted: false },
+    WADI: { name: "Wadi Truck Terminal", lat: 21.1520, lon: 78.9880, demand_kg: 800, is_restricted: false },
+    KALMESHWAR: { name: "Kalmeshwar Steel & Agro Hub", lat: 21.2300, lon: 78.9200, demand_kg: 850, is_restricted: false },
+    KAMPTEE: { name: "Kamptee Goods Terminal", lat: 21.2200, lon: 79.2000, demand_kg: 750, is_restricted: false },
+    HINGNA: { name: "Hingna Electronic Zone", lat: 21.1100, lon: 79.0050, demand_kg: 500, is_restricted: false },
+    SITABULDI: { name: "Sitabuldi Market Depot", lat: 21.1458, lon: 79.0825, demand_kg: 400, is_restricted: true },
+    ITWARI: { name: "Itwari Grain Market", lat: 21.1550, lon: 79.1120, demand_kg: 500, is_restricted: true }
+};
+
 // Populate Quick-Add Dropdown based on active region
 function updateQuickHubDropdown() {
     const select = document.getElementById("quickSelectHub");
     if (!select) return;
-    const isPune = state.selectedRegion === "PUNE_PMC";
-    const hubs = isPune ? PUNE_QUICK_HUBS : MUMBAI_QUICK_HUBS;
+    let hubs = MUMBAI_QUICK_HUBS;
+    let cityName = "Mumbai";
+    if (state.selectedRegion === "NAGPUR_NMC") {
+        hubs = NAGPUR_QUICK_HUBS;
+        cityName = "Nagpur";
+    } else if (state.selectedRegion === "PUNE_PMC") {
+        hubs = PUNE_QUICK_HUBS;
+        cityName = "Pune";
+    }
     
-    let html = `<option value="">-- Quick-Add ${isPune ? "Pune" : "Mumbai"} Logistics Hub --</option>`;
+    let html = `<option value="">-- Quick-Add ${cityName} Logistics Hub --</option>`;
     for (const [key, hub] of Object.entries(hubs)) {
         html += `<option value="${key}">${hub.name} (${hub.demand_kg} kg)</option>`;
     }
@@ -651,13 +745,14 @@ function initEventListeners() {
         updateFleetSummary();
     });
 
-    // Region Selector (Mumbai MMRDA vs Pune PMC)
+    // Region Selector (Mumbai MMRDA vs Pune PMC vs Nagpur NMC)
     const regionSelector = document.getElementById("regionSelector");
     if (regionSelector) {
         regionSelector.addEventListener("change", (e) => {
             state.selectedRegion = e.target.value;
-            const isPune = state.selectedRegion === "PUNE_PMC";
-            if (isPune) {
+            if (state.selectedRegion === "NAGPUR_NMC") {
+                state.map.setView([21.1458, 79.0882], 12);
+            } else if (state.selectedRegion === "PUNE_PMC") {
                 state.map.setView([18.5300, 73.8500], 11);
             } else {
                 state.map.setView([19.1400, 72.9700], 11);
@@ -667,7 +762,10 @@ function initEventListeners() {
             updateQuickHubDropdown();
             updateRulesTabContent();
             loadDatasetScale(6);
-            showToast(`Switched region to ${isPune ? "Pune Municipal Corporation (PMC)" : "Mumbai MMRDA"}`, "info");
+            const regionLabel = state.selectedRegion === "NAGPUR_NMC" 
+                ? "Nagpur Municipal Corporation (NMC)" 
+                : (state.selectedRegion === "PUNE_PMC" ? "Pune Municipal Corporation (PMC)" : "Mumbai MMRDA");
+            showToast(`Switched region to ${regionLabel}`, "info");
         });
     }
 
@@ -687,21 +785,33 @@ function initEventListeners() {
     document.getElementById("btnQuickAddHub")?.addEventListener("click", () => {
         const select = document.getElementById("quickSelectHub");
         const key = select.value;
+        const isNagpur = state.selectedRegion === "NAGPUR_NMC";
         const isPune = state.selectedRegion === "PUNE_PMC";
-        const hubs = isPune ? PUNE_QUICK_HUBS : MUMBAI_QUICK_HUBS;
+        let hubs = MUMBAI_QUICK_HUBS;
+        let prefix = "STOP";
+        let defaultDepot = { ...MUMBAI_PRESET_DEPOT };
+        if (isNagpur) {
+            hubs = NAGPUR_QUICK_HUBS;
+            prefix = "NGP";
+            defaultDepot = { ...NAGPUR_PRESET_DEPOT };
+        } else if (isPune) {
+            hubs = PUNE_QUICK_HUBS;
+            prefix = "PUNE";
+            defaultDepot = { ...PUNE_PRESET_DEPOT };
+        }
         if (!key || !hubs[key]) {
             showToast("Please choose a freight hub from the dropdown list.", "warning");
             return;
         }
 
         if (!state.depot) {
-            state.depot = isPune ? { ...PUNE_PRESET_DEPOT } : { ...MUMBAI_PRESET_DEPOT };
+            state.depot = defaultDepot;
         }
 
         const hub = hubs[key];
         const idx = state.stops.length + 1;
         state.stops.push({
-            stop_id: `${isPune ? "PUNE" : "STOP"}-${String(idx).padStart(2, "0")}`,
+            stop_id: `${prefix}-${String(idx).padStart(2, "0")}`,
             name: hub.name,
             lat: hub.lat,
             lon: hub.lon,
@@ -846,9 +956,24 @@ function updateClockDisplay(hourVal) {
     const statusBox = document.getElementById("ruleStatusBox");
     const statusTitle = document.getElementById("ruleStatusTitle");
     const statusDesc = document.getElementById("ruleStatusDesc");
+    const isNagpur = state.selectedRegion === "NAGPUR_NMC";
     const isPune = state.selectedRegion === "PUNE_PMC";
 
-    if (isPune) {
+    if (isNagpur) {
+        if (hourVal >= 8.5 && hourVal <= 11.5) {
+            statusBox.className = "rule-status-box status-restricted";
+            statusTitle.textContent = "NMC MORNING PEAK BAN ACTIVE (08:30 AM - 11:30 AM)";
+            statusDesc.textContent = "Heavy freight trucks (Tata 407, HCVs) banned across central markets (Sitabuldi, Itwari, Mahal). Fine ₹10,000. Vans (Tata Ace) allowed.";
+        } else if (hourVal >= 17.5 && hourVal <= 21.0) {
+            statusBox.className = "rule-status-box status-restricted";
+            statusTitle.textContent = "NMC EVENING PEAK BAN ACTIVE (05:30 PM - 09:00 PM)";
+            statusDesc.textContent = "Evening commercial peak ban across Central Avenue and commercial core. Delivery vans under 3.5 tonnes GVW permitted.";
+        } else {
+            statusBox.className = "rule-status-box status-open";
+            statusTitle.textContent = "NMC CORRIDORS OPEN (UNRESTRICTED)";
+            statusDesc.textContent = "Both delivery vans and heavy freight trucks permitted on designated Nagpur arterial roads.";
+        }
+    } else if (isPune) {
         if (hourVal >= 9.0 && hourVal <= 12.0) {
             statusBox.className = "rule-status-box status-restricted";
             statusTitle.textContent = "PMC MORNING PEAK BAN ACTIVE (09:00 AM - 12:00 PM)";
@@ -899,9 +1024,22 @@ function loadDatasetScale(scale = 6) {
     document.getElementById("mapMetricsBar").classList.add("hidden");
     document.getElementById("mapAnimBar").classList.add("hidden");
 
+    const isNagpur = state.selectedRegion === "NAGPUR_NMC";
     const isPune = state.selectedRegion === "PUNE_PMC";
-    state.depot = isPune ? { ...PUNE_PRESET_DEPOT } : { ...MUMBAI_PRESET_DEPOT };
-    const allStops = isPune ? PUNE_ALL_STOPS : MUMBAI_ALL_STOPS;
+    let defaultDepot = { ...MUMBAI_PRESET_DEPOT };
+    let allStops = MUMBAI_ALL_STOPS;
+    let cityName = "Mumbai";
+    if (isNagpur) {
+        defaultDepot = { ...NAGPUR_PRESET_DEPOT };
+        allStops = NAGPUR_ALL_STOPS;
+        cityName = "Nagpur";
+    } else if (isPune) {
+        defaultDepot = { ...PUNE_PRESET_DEPOT };
+        allStops = PUNE_ALL_STOPS;
+        cityName = "Pune";
+    }
+
+    state.depot = defaultDepot;
     const sliceCount = Math.min(scale, allStops.length);
     state.stops = JSON.parse(JSON.stringify(allStops.slice(0, sliceCount)));
 
@@ -935,7 +1073,7 @@ function loadDatasetScale(scale = 6) {
     renderLocationsList();
     renderMapMarkers();
     updateFleetSummary();
-    showToast(`Loaded ${sliceCount} ${isPune ? "Pune" : "Mumbai"} commercial drops (Fleet: ${state.fleet.vans} Vans, ${state.fleet.trucks} Trucks)`, "success");
+    showToast(`Loaded ${sliceCount} ${cityName} commercial drops (Fleet: ${state.fleet.vans} Vans, ${state.fleet.trucks} Trucks)`, "success");
 }
 
 // Remove an Individual Destination Stop
@@ -1225,16 +1363,27 @@ function handleOptimizationSuccess(data, autoSwitchTab = true) {
     document.getElementById("mapAnimBar").classList.remove("hidden");
 
     // Dynamic Trade-Off Analysis Update
+    const isNagpur = state.selectedRegion === "NAGPUR_NMC";
     const isPune = state.selectedRegion === "PUNE_PMC";
-    const fineRisk = isPune ? "₹15,000" : "₹20,000";
-    const delayHours = isPune ? "4.0" : "4.5";
+    let fineRisk = "₹20,000";
+    let delayHours = "4.5";
+    let regionName = "Mumbai MMRDA";
+    if (isNagpur) {
+        fineRisk = "₹10,000";
+        delayHours = "3.5";
+        regionName = "Nagpur NMC";
+    } else if (isPune) {
+        fineRisk = "₹15,000";
+        delayHours = "4.0";
+        regionName = "Pune PMC";
+    }
     const fineEl = document.querySelector(".trade-off-table tr:nth-child(3) td:nth-child(2)");
     if (fineEl) {
         fineEl.innerHTML = `<strong class="text-danger">${fineRisk} fine</strong> (Sec 115 MVA)`;
     }
     const tradeOffText = document.getElementById("tradeOffRecommendationText");
     if (tradeOffText) {
-        tradeOffText.innerHTML = `<strong>Dispatch Strategy (${isPune ? "Pune PMC" : "Mumbai MMRDA"}):</strong> Using 3 Tata Ace delivery vans eliminates the ${fineRisk} fine liability and completes deliveries ${delayHours} hours faster during peak windows despite ₹470 higher vehicle fuel cost.`;
+        tradeOffText.innerHTML = `<strong>Dispatch Strategy (${regionName}):</strong> Using 3 Tata Ace delivery vans eliminates the ${fineRisk} fine liability and completes deliveries ${delayHours} hours faster during peak windows despite ₹470 higher vehicle fuel cost.`;
     }
 
     renderItineraryTab(data);
@@ -1490,21 +1639,36 @@ function showToast(message, type = "info") {
     }, 3000);
 }
 
-// REFRESH REGULATORY MAP LAYERS (Mumbai vs Pune)
+// REFRESH REGULATORY MAP LAYERS (Mumbai vs Pune vs Nagpur)
 function refreshRegulatoryLayers() {
     state.geofenceLayer.clearLayers();
     state.barriersLayer.clearLayers();
     state.bridgesLayer.clearLayers();
 
+    const isNagpur = state.selectedRegion === "NAGPUR_NMC";
     const isPune = state.selectedRegion === "PUNE_PMC";
-    const geofenceCoords = isPune ? PUNE_GEOFENCE_COORDS : MUMBAI_GEOFENCE_COORDS;
-    const barriers = isPune ? PUNE_BARRIERS : MUMBAI_BARRIERS;
+    let geofenceCoords = MUMBAI_GEOFENCE_COORDS;
+    let barriers = MUMBAI_BARRIERS;
+    let geofenceTitle = "Greater Mumbai No-Entry Zone";
+    let authority = "Mumbai Traffic Police (Sec 115 & 116 MVA)";
+    let peakHours = "08:00 AM - 11:30 AM & 05:00 PM - 09:30 PM";
+    let fineText = "Fine Risk: Rs 20,000 + Seizure";
 
-    // 1. Municipal No-Entry Geofence Polygon
-    const geofenceTitle = isPune ? "Pune Municipal Corporation (PMC) No-Entry Core" : "Greater Mumbai No-Entry Zone";
-    const authority = isPune ? "Pune Municipal Corporation & Traffic Branch (Sec 115 & 116 MVA)" : "Mumbai Traffic Police (Sec 115 & 116 MVA)";
-    const peakHours = isPune ? "09:00 AM - 12:00 PM & 04:30 PM - 08:30 PM" : "08:00 AM - 11:30 AM & 05:00 PM - 09:30 PM";
-    const fineText = isPune ? "Fine Risk: Rs 15,000 + Impoundment" : "Fine Risk: Rs 20,000 + Seizure";
+    if (isNagpur) {
+        geofenceCoords = NAGPUR_GEOFENCE_COORDS;
+        barriers = NAGPUR_BARRIERS;
+        geofenceTitle = "Nagpur Municipal Corporation (NMC) Core No-Entry Zone";
+        authority = "Nagpur Municipal Corporation & City Traffic Police (Sec 115 MVA)";
+        peakHours = "08:30 AM - 11:30 AM & 05:30 PM - 09:00 PM";
+        fineText = "Fine Risk: Rs 10,000 + Seizure";
+    } else if (isPune) {
+        geofenceCoords = PUNE_GEOFENCE_COORDS;
+        barriers = PUNE_BARRIERS;
+        geofenceTitle = "Pune Municipal Corporation (PMC) No-Entry Core";
+        authority = "Pune Municipal Corporation & Traffic Branch (Sec 115 & 116 MVA)";
+        peakHours = "09:00 AM - 12:00 PM & 04:30 PM - 08:30 PM";
+        fineText = "Fine Risk: Rs 15,000 + Impoundment";
+    }
 
     const geofencePolygon = L.polygon(geofenceCoords, {
         color: "#ef4444",
@@ -1594,11 +1758,38 @@ function initRegulatoryLayers() {
 
 // UPDATE CITY TRAFFIC RULES TAB CONTENT
 function updateRulesTabContent() {
+    const isNagpur = state.selectedRegion === "NAGPUR_NMC";
     const isPune = state.selectedRegion === "PUNE_PMC";
     const container = document.querySelector("#tab-rules .rules-document");
     if (!container) return;
 
-    if (isPune) {
+    if (isNagpur) {
+        container.innerHTML = `
+            <h2>Nagpur NMC Commercial Transport Regulations</h2>
+            <p class="rules-subtitle">Reference guide for drivers and dispatchers in Nagpur Metropolitan Area</p>
+            
+            <div class="rule-box">
+                <h3>1. Heavy Commercial Vehicle Peak-Hour No-Entry</h3>
+                <p>Under Section 115 of the Motor Vehicles Act, heavy goods trucks (such as Tata 407, Eicher Pro, and multi-axle trucks) are prohibited from entering central Nagpur commercial markets (Sitabuldi, Mahal, Itwari, Gandhibagh, Central Avenue) during peak traffic hours:</p>
+                <ul>
+                    <li><strong>Morning Window:</strong> 08:30 AM to 11:30 AM</li>
+                    <li><strong>Evening Window:</strong> 05:30 PM to 09:00 PM</li>
+                    <li><strong>Vehicles Exempt:</strong> Small delivery vans under 3.5 tonnes GVW (such as Tata Ace, Mahindra Bolero Maxx, Ashok Leyland Dost).</li>
+                    <li><strong>Violation Penalty:</strong> Minimum fine of ₹10,000 and vehicle seizure.</li>
+                </ul>
+            </div>
+
+            <div class="rule-box">
+                <h3>2. Sitabuldi Metro & Cotton Market Flyover Clearances</h3>
+                <p>Key urban metro ramps and railway subways feature overhead steel gantries fixed at a clearance of <strong>2.5 meters</strong>. Freight trucks exceeding 2.5m must use ground-level surface bypasses.</p>
+            </div>
+
+            <div class="rule-box">
+                <h3>3. Ram Jhula & Heritage Railway Overbridge Weight Limits</h3>
+                <p>Arterial railway overbridges restrict commercial freight exceeding <strong>5.0 Tonnes Gross Vehicle Weight</strong>. Heavy multi-axle trucks must use the Outer Ring Road or Kamptee Road corridor.</p>
+            </div>
+        `;
+    } else if (isPune) {
         container.innerHTML = `
             <h2>Pune PMC Commercial Transport Regulations</h2>
             <p class="rules-subtitle">Reference guide for drivers and dispatchers in Pune Metropolitan Area</p>
@@ -1655,8 +1846,21 @@ function updateRulesTabContent() {
 
 // RENDER COMMERCIAL DISPATCH MANIFEST MODAL
 function renderManifestModal(data) {
+    const isNagpur = state.selectedRegion === "NAGPUR_NMC";
     const isPune = state.selectedRegion === "PUNE_PMC";
-    const serial = `MANIFEST-${isPune ? "PMC" : "MMRDA"}-${Date.now().toString().slice(-6)}`;
+    let code = "MMRDA";
+    let regionTitle = "Mumbai Metropolitan Region (MMRDA / Police Traffic Branch)";
+    let hubTitle = state.depot?.name || "Bhiwandi Central Freight Hub";
+    if (isNagpur) {
+        code = "NMC";
+        regionTitle = "Nagpur Metropolitan Area (NMC / Nagpur City Traffic Police)";
+        hubTitle = state.depot?.name || "MIHAN SEZ Multi-Modal Freight Terminal";
+    } else if (isPune) {
+        code = "PMC";
+        regionTitle = "Pune Metropolitan Region (PMC / Pune Traffic Police)";
+        hubTitle = state.depot?.name || "Bhosari-Chakan MIDC Freight Terminal";
+    }
+    const serial = `MANIFEST-${code}-${Date.now().toString().slice(-6)}`;
     document.getElementById("manifestSerialId").textContent = serial;
 
     const departureClock = document.getElementById("clockDisplay")?.textContent || "08:30 AM";
@@ -1666,8 +1870,8 @@ function renderManifestModal(data) {
         <div class="manifest-header-block">
             <div class="manifest-meta-col">
                 <strong>RouteOpt Commercial Fleet Dispatch Manifest</strong>
-                <span>Region: ${isPune ? "Pune Metropolitan Region (PMC / Pune Traffic Police)" : "Mumbai Metropolitan Region (MMRDA / Police Traffic Branch)"}</span>
-                <span>Operating Hub: ${state.depot?.name || (isPune ? "Bhosari-Chakan MIDC Freight Terminal" : "Bhiwandi Central Freight Hub")}</span>
+                <span>Region: ${regionTitle}</span>
+                <span>Operating Hub: ${hubTitle}</span>
             </div>
             <div class="manifest-meta-col" style="text-align: right;">
                 <div class="manifest-badge-legal">
