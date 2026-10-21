@@ -23,10 +23,12 @@ class DeliveryStop(BaseModel):
     lat: float = Field(..., ge=-90.0, le=90.0)
     lon: float = Field(..., ge=-180.0, le=180.0)
     demand_kg: float = Field(default=50.0, ge=0)
-    time_window_start_sec: int = Field(default=0, description="Earliest delivery time in shift seconds")
-    time_window_end_sec: int = Field(default=43200, description="Latest cutoff time in shift seconds (12h default)")
+    time_window_start_sec: int = Field(default=0, description="Earliest delivery time in seconds (seconds since midnight or shift seconds)")
+    time_window_end_sec: int = Field(default=43200, description="Latest cutoff delivery time in seconds (seconds since midnight or shift seconds)")
     service_duration_sec: int = Field(default=300, description="Unloading dock dwell time (default 5m)")
     is_in_restricted_urban_core: bool = Field(default=False, description="Inside municipal truck no-entry zone")
+    requires_flyover: bool = Field(default=False, description="Requires flyover transit (checks overhead clearance gantry)")
+    max_access_gvw_tonnes: Optional[float] = Field(default=None, description="Bridge or corridor maximum GVW limit in metric tonnes")
 
 class DepotLocation(BaseModel):
     depot_id: str = Field(default="DEPOT-01")
@@ -78,3 +80,5 @@ class OptimizeV2Response(BaseModel):
     traffic_factor_applied: float
     regulatory_compliance_notes: List[str]
     solve_duration_ms: float
+    is_real_road_data: bool = Field(default=False, description="True if computed using live OSRM road network, False if estimated via detour model")
+    validation_errors: List[Dict[str, Any]] = Field(default_factory=list)

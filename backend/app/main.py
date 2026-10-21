@@ -13,12 +13,12 @@ app = FastAPI(
     version="2.0.0"
 )
 
-# Enable CORS for cross-origin frontend testing
+# CORS restricted to trusted local/origin domains
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=settings.ALLOWED_ORIGINS,
     allow_credentials=True,
-    allow_methods=["*"],
+    allow_methods=["GET", "POST", "OPTIONS"],
     allow_headers=["*"],
 )
 
@@ -34,7 +34,7 @@ async def health_check():
     return {
         "status": "OK",
         "app": settings.APP_NAME,
-        "ai_enabled": bool(settings.GROK_API_KEY or settings.GROQ_API_KEY),
+        "ai_enabled": bool(settings.GROQ_API_KEY),
         "osrm_endpoint": settings.OSRM_URL
     }
 

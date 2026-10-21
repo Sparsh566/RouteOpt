@@ -3,8 +3,9 @@ FastAPI Controller: Commercial Fleet Route Optimization (Vans & Trucks)
 """
 
 from fastapi import APIRouter, HTTPException
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Tuple, Optional
 import time
+from datetime import datetime, timedelta, timezone
 from backend.app.models.fleet_v2 import (
     OptimizeV2Request,
     OptimizeV2Response,
@@ -15,8 +16,27 @@ from backend.app.services.osrm_service import OSRMService
 from backend.app.services.traffic_engine import TrafficEngine
 from backend.app.services.cvrptw_solver import CVRPTWSolver
 from backend.app.services.regulation_engine import RegionalRegulationEngine
+from backend.app.services.validator import RouteValidator
 
 router = APIRouter(tags=["Commercial Fleet Optimization"])
+
+def parse_departure_datetime(departure_iso: Optional[str]) -> Tuple[datetime, int]:
+    """
+    Parses departure ISO string into timezone-aware datetime (defaulting to IST, UTC+05:30)
+    and returns (datetime_obj, seconds_since_midnight).
+    """
+    ist = timezone(timedelta(hours=5, minutes=30))
+    if not departure_iso:
+        dt = datetime.now(ist).replace(hour=8, minute=30, second=0, microsecond=0)
+    else:
+        try:
+            dt = datetime.fromisoformat(departure_iso)
+            if dt.tzinfo is None:
+                dt = dt.replace(tzinfo=ist)
+        except Exception:
+            dt = datetime.now(ist).replace(hour=8, minute=30, second=0, microsecond=0)
+    sec_since_midnight = dt.hour * 3600 + dt.minute * 60 + dt.second
+    return dt, sec_since_midnight
 
 @router.post("/optimize", response_model=OptimizeV2Response)
 async def optimize_fleet_routes(payload: OptimizeV2Request):
@@ -27,28 +47,33 @@ async def optimize_fleet_routes(payload: OptimizeV2Request):
     if not payload.fleet:
         raise HTTPException(status_code=400, detail="At least 1 commercial vehicle (Van or Truck) is required.")
 
-    # 1. Prepare waypoint coordinate list (Depot + Stops)
+    # 1. Parse Departure Time & Unified Time Axis (B4 & B5)
+    departure_dt, departure_sec = parse_departure_datetime(payload.departure_time_iso)
+
+    # 2. Prepare waypoint coordinate list (Depot + Stops)
     all_coords = [[payload.depot.lat, payload.depot.lon]] + [[s.lat, s.lon] for s in payload.stops]
 
-    # 2. Query OSRM matrices (with automatic high-fidelity road winding fallback)
+    # 3. Query OSRM matrices (with automatic high-fidelity road winding fallback)
     dist_matrix, base_dur_matrix, is_real_osrm = await OSRMService.get_matrices(all_coords)
 
-    # 3. Apply peak-hour traffic degradation multipliers
+    # 4. Apply peak-hour traffic degradation multipliers (B6)
     if payload.apply_traffic_congestion:
-        dur_matrix = TrafficEngine.apply_traffic(base_dur_matrix, payload.departure_time_iso or "")
         traffic_factor = TrafficEngine.get_congestion_factor(payload.departure_time_iso)
+        dur_matrix = TrafficEngine.apply_traffic(base_dur_matrix, payload.departure_time_iso)
     else:
-        dur_matrix = base_dur_matrix
         traffic_factor = 1.0
+        dur_matrix = base_dur_matrix
 
-    # 4. Execute CVRPTW Solver with Road Guidelines
+    # 5. Execute CVRPTW Solver with Road Guidelines & Single Time Axis
     solver = CVRPTWSolver(
         distance_matrix=dist_matrix,
         duration_matrix=dur_matrix,
         depot=payload.depot,
         stops=payload.stops,
         fleet=payload.fleet,
-        enforce_guidelines=payload.enforce_government_guidelines
+        enforce_guidelines=payload.enforce_government_guidelines,
+        departure_time_sec=departure_sec,
+        region=payload.region
     )
 
     solution = solver.solve()
@@ -58,18 +83,16 @@ async def optimize_fleet_routes(payload: OptimizeV2Request):
             detail="Infeasible routing constraints. Verify that vehicle capacities and time windows allow delivery."
         )
 
-    # 5. Build detailed vehicle routes and GeoJSON polylines
+    # 6. Build detailed vehicle routes and GeoJSON polylines
     routes: List[VehicleRouteResult] = []
     total_fleet_dist = 0.0
     total_fleet_dur = 0.0
     total_fleet_cost = 0.0
 
-    reg_engine = RegionalRegulationEngine(payload.region)
-    compliance_notes = []
+    midnight_dt = departure_dt.replace(hour=0, minute=0, second=0, microsecond=0)
 
     for route_data in solution["routes"]:
         v_id = route_data["vehicle_id"]
-        # Find matching vehicle spec
         vehicle_spec = next(v for v in payload.fleet if v.vehicle_id == v_id)
         schedule_nodes = route_data["schedule"]
 
@@ -81,7 +104,7 @@ async def optimize_fleet_routes(payload: OptimizeV2Request):
 
         for item in schedule_nodes:
             node_idx = item["node_index"]
-            arrival_sec = item["arrival_time_sec"]
+            arrival_sec = float(item["arrival_time_sec"])
 
             if node_idx == 0:
                 name = payload.depot.name
@@ -95,18 +118,18 @@ async def optimize_fleet_routes(payload: OptimizeV2Request):
 
             route_coords.append([lat, lon])
 
-            # Format clock time (e.g. 08:30 + arrival_sec)
-            hrs = (8 + (arrival_sec // 3600)) % 24
-            mins = (30 + ((arrival_sec % 3600) // 60)) % 60
-            clock_str = f"{hrs:02d}:{mins:02d} IST"
+            # Datetime arithmetic from parsed departure time (B4)
+            arrival_dt = midnight_dt + timedelta(seconds=arrival_sec)
+            clock_str = arrival_dt.strftime("%H:%M IST")
 
+            dwell_sec = 300 if node_idx > 0 else 0
             stops_visited.append(StopVisit(
                 stop_id=s_id,
                 name=name,
                 lat=lat,
                 lon=lon,
-                arrival_time_sec=arrival_sec,
-                departure_time_sec=arrival_sec + (300 if node_idx > 0 else 0),
+                arrival_time_sec=int(round(arrival_sec)),
+                departure_time_sec=int(round(arrival_sec + dwell_sec)),
                 waiting_time_sec=0,
                 current_load_kg=float(item["load_kg"]),
                 clock_time_str=clock_str
@@ -137,7 +160,8 @@ async def optimize_fleet_routes(payload: OptimizeV2Request):
             route_geometry=geometry
         ))
 
-    # Notes
+    # Compliance Notes
+    compliance_notes = []
     if payload.enforce_government_guidelines:
         compliance_notes.append("Enforced: Municipal Corporation peak-hour HCV No-Entry restrictions (08:00-11:30 & 17:00-21:30).")
         compliance_notes.append("Enforced: Flyover 2.5m overhead height clearance gantry checks for freight trucks.")
@@ -146,16 +170,34 @@ async def optimize_fleet_routes(payload: OptimizeV2Request):
     else:
         compliance_notes.append("Calculated using urban high-fidelity road winding model (1.35x detour factor).")
 
+    # 6. Independent Route Validation (Phase 2)
+    validator = RouteValidator(
+        depot=payload.depot,
+        stops=payload.stops,
+        fleet=payload.fleet,
+        distance_matrix=dist_matrix,
+        duration_matrix=dur_matrix,
+        departure_time_sec=departure_sec,
+        region=payload.region,
+        enforce_guidelines=payload.enforce_government_guidelines
+    )
+    val_report = validator.validate(
+        routes=solution["routes"],
+        dropped_stops=solution["dropped_stops"]
+    )
+
     solve_ms = (time.perf_counter() - t0) * 1000
 
     return OptimizeV2Response(
-        status="SUCCESS" if not solution["dropped_stops"] else "PARTIAL",
+        status=val_report["status"],
         routes=routes,
         dropped_stops=solution["dropped_stops"],
         total_fleet_distance_km=round(total_fleet_dist / 1000.0, 2),
         total_fleet_duration_hours=round(total_fleet_dur / 3600.0, 2),
         total_fleet_cost_inr=round(total_fleet_cost, 2),
-        traffic_factor_applied=1.65 if payload.apply_traffic_congestion else 1.0,
+        traffic_factor_applied=traffic_factor,
         regulatory_compliance_notes=compliance_notes,
-        solve_duration_ms=round(solve_ms, 2)
+        solve_duration_ms=round(solve_ms, 2),
+        is_real_road_data=is_real_osrm,
+        validation_errors=val_report["errors"]
     )

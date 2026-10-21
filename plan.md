@@ -19,14 +19,14 @@ RouteOpt is an intelligent route planning and simulation platform tailored to co
         (Baseline MVP)              (Regulatory Fleet & Guidelines)   (AI Simulation & "What-If" Engine)
             
  • Single Vehicle TSP / basic           • Fleet: Commercial Vans (LCVs)        • AI "What-If" Scenario Sim:    
-   CVRP (1 Depot, up to 10 stops)         and Heavy Trucks (MCV/HCV)             Predict outcomes for sudden   
+    CVRP (1 Depot, up to 10 stops)         and Heavy Trucks (MCV/HCV)             Predict outcomes for sudden   
  • Static OSRM Road Distance &          • Government Road Guidelines:            traffic bans, weather, delays 
    Duration Matrix                        - Municipal "No-Entry" windows       • LLM Regulatory Advisor:       
  • Google OR-Tools Heuristic              - Height/Weight bridge limits          Explains regional rules &     
  • Leaflet.js interactive pins            - Axle/GVW arterial bans               recommends fleet workarounds  
- • Synchronous FastAPI Gateway          • CVRPTW with Customer Windows         • Real-time DVRP Re-routing     
+ • Synchronous FastAPI Gateway          • CVRPTW with Customer Windows         • Independent Route Validator   
                                         • Peak-Hour Traffic Multipliers        • Fleet trade-off analytics:    
-                                        • Indian Geocoding (Nominatim)           (e.g., 2 Vans vs. 1 Big Truck)
+                                        • Coordinated Dispatch Engine            (e.g., 2 Vans vs. 1 Big Truck)
             
 ```
 
@@ -53,10 +53,10 @@ Version 3 introduces an intelligent digital twin simulation environment:
         *   *Scenario 1 (Regulatory Cutoff Breach):* "What happens if Truck 1 is delayed by 45 minutes at Bhiwandi and reaches the Mumbai border at 17:15 (during the 17:00-21:30 No-Entry ban)?" $\rightarrow$ AI simulates the penalty, predicts whether the truck should park at an outer holding bay or offload onto 2 standby vans.
         *   *Scenario 2 (Fleet Swap Trade-off):* "What would happen if we replace 1 heavy 10-ton Truck with 3 Tata Ace vans?" $\rightarrow$ AI compares total fuel costs, toll charges, driver wages against the time gained by bypassing No-Entry restrictions.
         *   *Scenario 3 (Sudden Monsoon / Chokepoint Disruption):* "What happens if a major underpass is waterlogged, forcing a detour under a low-clearance bridge?" $\rightarrow$ AI calculates feasibility and automatically excludes trucks from low bridges.
-2.  **LLM Regulatory Advisor (Powered by Groq / Gemini / Ollama):**
+2.  **LLM Regulatory Advisor (Powered by Groq Llama with Deterministic Fallback):**
     *   Translates regional government gazette notifications into human-understandable advice:
-    *   *Example Output:* *"Warning: Proposed route for Truck MH-04-AB-1234 enters Western Express Highway at 18:30, violating Mumbai Traffic Police Notification Sec 115/116. Recommended Action: Reroute via Eastern Freeway Commercial Corridor or delay entry until 21:30."*
-3.  **Dynamic VRP (DVRP) with Live Re-routing:** Real-time event notifications over WebSockets when traffic police issue ad-hoc diversions or VIP route closures.
+    *   *Example Output:* *"Warning: Proposed route enters Western Express Highway during peak hours, violating Municipal Traffic Police Notification. Recommended Action: Reroute via Eastern Freeway Commercial Corridor or delay entry until unrestricted hours."*
+3.  **Independent Route Validator:** Verifies all returned solutions for capacity, window limits, and compliance.
 
 ---
 
@@ -72,21 +72,21 @@ flowchart TD
 
     subgraph GW ["API Gateway & Orchestration (FastAPI)"]
         B1["REST Endpoints (/optimize, /simulate, /guidelines)"]
-        B2["WebSocket Real-Time Dispatch Hub"]
+        B2["Independent Route Validator"]
         B3["Regional Rule Compliance Filter"]
         B4["AI Simulation Scenario Orchestrator"]
     end
 
     subgraph SIM ["AI Simulation Core"]
-        C1["What-If Scenario Evaluator (Monte Carlo & Heuristics)"]
-        C2["LLM Regulatory Advisory Agent (Groq / Gemini)"]
+        C1["What-If Scenario Evaluator (Delays & Disruptions)"]
+        C2["LLM Regulatory Advisory Agent (Groq)"]
         C3["Fleet Trade-off Cost Analyzer (Van vs Truck)"]
     end
 
     subgraph ENGINE ["Optimization Core"]
         D1["OR-Tools CVRPTW (Van & Truck Capacities)"]
         D2["Regulatory Time-Window & Road Exclusion Model"]
-        D3["Fast Guided Local Search Re-optimizer"]
+        D3["Deterministic Greedy CVRPTW Fallback"]
     end
 
     subgraph DATA ["Geospatial & Regulatory Data Layer"]
@@ -96,7 +96,6 @@ flowchart TD
     end
 
     UI -->|HTTP / JSON| GW
-    UI <-->|WebSockets| B2
     GW --> B3
     B3 --> E2
     GW --> SIM
@@ -146,12 +145,12 @@ Where:
  • Regional No-Entry         • OR-Tools solver with Van  • AI "What-If" Scenario      
    geofence database (Mumbai   vs. Truck vehicle classes   Simulation Engine          
    & Pune municipal rules)   • Road restriction penalty  • LLM Regulatory Advisor     
- • OSRM routing profiles:      matrix (height/weight/GVW   (Groq / Gemini)            
+ • OSRM routing profiles:      matrix (height/weight/GVW   (Groq Llama / Fallback)    
    truck.lua vs car/van      • CVRPTW with unloading     • FastAPI Scenario API &     
  • Leaflet UI: Van & Truck     dwell times by vehicle      Pydantic contracts         
-   color overlays & bans     • Fleet swap trade-off      • WebSocket real-time alerts 
+   color overlays & bans     • Fleet swap trade-off      • Independent Route Validator
  • Height barrier layer        benchmarking (1 Truck vs  • Docker orchestration &     
-   on interactive map          multiple Vans)              Redis scenario cache       
+   on interactive map          multiple Vans)              regression test harness    
 
 ```
 
@@ -161,11 +160,10 @@ Where:
 
 | Service / Capability | Recommended Provider | Free Tier / Pricing | API Key? | College Demo Fallback Strategy |
 | :--- | :--- | :---: | :---: | :--- |
-| **Road Matrix & Routing** | **OSRM (Self-Hosted)** | **100% Free** | **No** | Local Docker container. Uses custom road penalty tags for truck vs. van routes. |
+| **Road Matrix & Routing** | **OSRM (Self-Hosted)** | **100% Free** | **No** | Local Docker container or high-fidelity detour winding fallback. |
 | **Regional Guidelines Data** | **Embedded Regulatory JSON** (Mumbai MMRDA / Pune PMC) | **100% Free** | **No** | Pre-configured database of municipal no-entry hours, flyover height gantries, and toll limits. Zero external dependency. |
-| **AI "What-If" Simulator & Advisor** | **Groq API (Llama 3.3 70B)** *(Primary)*<br>Google Gemini 2.0 Flash *(Secondary)* | **Free Tier** (Generous RPM)<br>Free Tier | **Yes** (Free) | Built-in Rule-Based Heuristic Advisor provides structured violation warnings if offline. |
-| **Geocoding & Search** | **OSM Nominatim** | **100% Free** | **No** | Free public geocoder + pre-mapped logistics hubs (Bhiwandi, Kalamboli, Navi Mumbai, Pune MIDC). |
-| **Peak Traffic Multiplier** | **Temporal Congestion Model** | **100% Free** | **No** | Empirical rush-hour model ($1.65\times$ morning, $1.85\times$ evening delays). |
+| **AI "What-If" Simulator & Advisor** | **Groq API (Llama 3.3 70B)** | **Free Tier** | **Yes** (Free) | Built-in Rule-Based Heuristic Advisor provides structured violation warnings if offline or without key. |
+| **Peak Traffic Multiplier** | **Temporal Congestion Model** | **100% Free** | **No** | Empirical rush-hour model (morning/evening rush delay factor). |
 | **Map UI Rendering** | **Leaflet.js + OSM Tiles** | **100% Free** | **No** | Standard open-source web stack. |
 
 > [!TIP]

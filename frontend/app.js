@@ -6,6 +6,17 @@
  * 3. Live Driver Route Animation on map.
  */
 
+// XSS Prevention Utility
+function escapeHtml(str) {
+    if (str === null || str === undefined) return '';
+    return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+}
+
 // Application State
 const state = {
     depot: null,
@@ -1239,7 +1250,7 @@ function renderLocationsList() {
             <div class="stop-card">
                 <div class="stop-badge-num">${i + 1}</div>
                 <div class="stop-meta">
-                    <div class="stop-meta-name">${s.name}</div>
+                    <div class="stop-meta-name">${escapeHtml(s.name)}</div>
                     <div class="stop-meta-info">Load: ${s.demand_kg} kg | Unload: ${Math.round(s.service_duration_sec / 60)} mins | ${zoneText}</div>
                 </div>
                 <button type="button" class="btn-stop-remove" data-index="${i}" title="Remove this destination">
@@ -1652,13 +1663,13 @@ function renderDriverHUD(data, selectedVehicleId = null) {
                 <div class="${rowClass}">
                     <span class="step-num">${idx + 1}</span>
                     <div class="step-details">
-                        <div class="step-name">${stop.name}</div>
+                        <div class="step-name">${escapeHtml(stop.name)}</div>
                         <div class="step-meta">
-                            <span><i class="fa-regular fa-clock"></i> ${stop.clock_time_str || "--:--"}</span>
+                            <span><i class="fa-regular fa-clock"></i> ${escapeHtml(stop.clock_time_str) || "--:--"}</span>
                             <span><i class="fa-solid fa-box"></i> ${stop.current_load_kg || 400} kg</span>
                         </div>
                     </div>
-                    <button type="button" class="btn-step-toggle" title="${btnTitle}" onclick="window.toggleDriverStop('${activeRoute.vehicle_id}', ${idx})">
+                    <button type="button" class="btn-step-toggle" title="${btnTitle}" onclick="window.toggleDriverStop('${escapeHtml(activeRoute.vehicle_id)}', ${idx})">
                         <i class="fa-solid ${btnIcon}" style="font-size:16px;"></i>
                     </button>
                 </div>

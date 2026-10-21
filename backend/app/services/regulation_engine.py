@@ -1,54 +1,82 @@
 """
 Regional Government Road Guidelines Engine
-Encodes Mumbai MMRDA, Pune PMC, and Indian Highway traffic regulations.
+Loads structured municipal regulations from backend/app/data/regulations.json.
+Maintains verified citations for Mumbai MMRDA, with other jurisdictions marked demo/assumption.
 """
 
+import os
+import json
 from typing import Tuple, List, Dict, Any, Optional
-from backend.app.models.fleet_v2 import CommercialVehicleSpec, VehicleClass, DeliveryStop
+import logging
+from backend.app.models.fleet_v2 import CommercialVehicleSpec, VehicleClass
+
+logger = logging.getLogger("routeopt.regulations")
+
+DATA_FILE_PATH = os.path.join(os.path.dirname(os.path.dirname(__file__)), "data", "regulations.json")
 
 class RegionalRegulationEngine:
+    _cached_data = None
+
+    @classmethod
+    def _load_data(cls) -> Dict[str, Any]:
+        if cls._cached_data is None:
+            if os.path.exists(DATA_FILE_PATH):
+                try:
+                    with open(DATA_FILE_PATH, "r", encoding="utf-8") as f:
+                        cls._cached_data = json.load(f)
+                except Exception as e:
+                    logger.error(f"Failed to load regulations.json: {e}")
+                    cls._cached_data = {}
+            else:
+                cls._cached_data = {}
+        return cls._cached_data
+
     def __init__(self, region: str = "MUMBAI_MMRDA"):
         self.region = (region or "MUMBAI_MMRDA").upper()
-        
-        if "NAGPUR" in self.region:
-            # Nagpur Municipal Corporation (NMC) Regulations
-            # Morning ban: 08:30 AM (30600s) to 11:30 AM (41400s)
-            self.morning_ban_start = 30600
-            self.morning_ban_end = 41400
-            # Evening ban: 05:30 PM (63000s) to 09:00 PM (75600s)
-            self.evening_ban_start = 63000
-            self.evening_ban_end = 75600
-            self.flyover_height_limit_m = 2.5
-            self.bridge_gvw_limit_tonnes = 5.0
-            self.violation_fine_inr = 10000.0
-            self.morning_ban_label = "Nagpur NMC Morning Peak HCV Ban (08:30 AM - 11:30 AM)"
-            self.evening_ban_label = "Nagpur NMC Evening Peak HCV Ban (05:30 PM - 09:00 PM)"
-        elif "PUNE" in self.region:
-            # Pune Municipal Corporation (PMC) Regulations
-            # Morning ban: 09:00 AM (32400s) to 12:00 PM (43200s)
-            self.morning_ban_start = 32400
-            self.morning_ban_end = 43200
-            # Evening ban: 04:30 PM (59400s) to 08:30 PM (73800s)
-            self.evening_ban_start = 59400
-            self.evening_ban_end = 73800
-            self.flyover_height_limit_m = 2.5
-            self.bridge_gvw_limit_tonnes = 5.0
-            self.violation_fine_inr = 15000.0
-            self.morning_ban_label = "Pune PMC Morning Peak HCV Ban (09:00 AM - 12:00 PM)"
-            self.evening_ban_label = "Pune PMC Evening Peak HCV Ban (04:30 PM - 08:30 PM)"
+        data = self._load_data().get("regions", {})
+
+        if "PUNE" in self.region:
+            reg_info = data.get("PUNE_PMC", {})
+            self.region_key = "PUNE_PMC"
+        elif "NAGPUR" in self.region:
+            reg_info = data.get("NAGPUR_NMC", {})
+            self.region_key = "NAGPUR_NMC"
         else:
-            # Mumbai MMRDA Regulations (Default)
-            # Morning ban: 08:00 AM (28800s) to 11:30 AM (41400s)
+            reg_info = data.get("MUMBAI_MMRDA", {})
+            self.region_key = "MUMBAI_MMRDA"
+
+        self.name = reg_info.get("name", "Metropolitan Area")
+        self.status = reg_info.get("status", "demo")
+        self.citations = reg_info.get("citations", [])
+
+        # Time restrictions
+        time_restrictions = reg_info.get("time_restrictions", [])
+        if len(time_restrictions) >= 2:
+            self.morning_ban_start = time_restrictions[0]["start_sec"]
+            self.morning_ban_end = time_restrictions[0]["end_sec"]
+            self.morning_ban_label = time_restrictions[0]["name"]
+
+            self.evening_ban_start = time_restrictions[1]["start_sec"]
+            self.evening_ban_end = time_restrictions[1]["end_sec"]
+            self.evening_ban_label = time_restrictions[1]["name"]
+        else:
+            # Verified Mumbai default fallback
             self.morning_ban_start = 28800
             self.morning_ban_end = 41400
-            # Evening ban: 05:00 PM (61200s) to 09:30 PM (77400s)
+            self.morning_ban_label = "Morning Peak HCV Ban (08:00 AM - 11:30 AM)"
             self.evening_ban_start = 61200
             self.evening_ban_end = 77400
-            self.flyover_height_limit_m = 2.5
-            self.bridge_gvw_limit_tonnes = 7.5
-            self.violation_fine_inr = 20000.0
-            self.morning_ban_label = "Morning Peak HCV Ban (08:00 AM - 11:30 AM)"
             self.evening_ban_label = "Evening Peak Severe HCV Ban (05:00 PM - 09:30 PM)"
+
+        # Infrastructure limits
+        infra = reg_info.get("infrastructure_limits", {})
+        self.flyover_height_limit_m = infra.get("flyover_height_limit_m", 2.5)
+        self.bridge_gvw_limit_tonnes = infra.get("bridge_gvw_limit_tonnes", 7.5 if "MUMBAI" in self.region_key else 5.0)
+
+        # Penalties
+        penalties = reg_info.get("penalties", {})
+        self.violation_fine_inr = penalties.get("violation_fine_inr", 20000.0)
+        self.legal_basis = penalties.get("legal_basis", "Motor Vehicles Act, 1988")
 
     def check_time_in_no_entry_window(self, clock_seconds: int) -> Tuple[bool, str]:
         """
@@ -61,7 +89,7 @@ class RegionalRegulationEngine:
             return True, self.evening_ban_label
         return False, "Unrestricted Entry"
 
-    def check_vehicle_access(self, vehicle: CommercialVehicleSpec, is_flyover: bool) -> Tuple[bool, Optional[str]]:
+    def check_vehicle_access(self, vehicle: CommercialVehicleSpec, is_flyover: bool = False) -> Tuple[bool, Optional[str]]:
         """
         Verifies whether vehicle height and weight comply with structural barriers.
         """
@@ -74,73 +102,36 @@ class RegionalRegulationEngine:
         return True, None
 
     def get_guideline_summary(self) -> Dict[str, Any]:
-        if "NAGPUR" in self.region:
-            return {
-                "region": "NAGPUR_NMC",
-                "rules": [
-                    {
-                        "title": "Nagpur NMC Core Peak-Hour Heavy Vehicle Restriction",
-                        "applies_to": "Heavy Freight Trucks (MCV/HCV > 5.0T GVW)",
-                        "restricted_hours": ["08:30 AM - 11:30 AM", "05:30 PM - 09:00 PM"],
-                        "exempt_vehicles": "Delivery Vans (LCVs < 3.5T GVW like Tata Ace)",
-                        "penalty": f"₹{self.violation_fine_inr:,.0f} fine + impoundment under Sec 115 MVA"
-                    },
-                    {
-                        "title": "Ram Jhula & Itwari Overbridge Weight Limits",
-                        "applies_to": "Vehicles exceeding 5.0T Gross Vehicle Weight",
-                        "impact": "Mandatory bypass via Outer Ring Road or Kamptee Road arterial"
-                    },
-                    {
-                        "title": "Sitabuldi Metro Flyover Overhead Gantry",
-                        "applies_to": "All Commercial Vehicles > 2.5m height",
-                        "impact": "Heavy freight trucks diverted to ground-level Wardha Road surface corridor"
-                    }
-                ]
-            }
-
-        if "PUNE" in self.region:
-            return {
-                "region": "PUNE_PMC",
-                "rules": [
-                    {
-                        "title": "Pune PMC Peak-Hour Commercial Freight Prohibition",
-                        "applies_to": "Heavy Goods Vehicles (HCV/MCV > 5.0T GVW)",
-                        "restricted_hours": ["09:00 AM - 12:00 PM", "04:30 PM - 08:30 PM"],
-                        "exempt_vehicles": "Delivery Vans (LCVs < 3.5T GVW like Tata Ace)",
-                        "penalty": f"₹{self.violation_fine_inr:,.0f} fine + vehicle impound risk"
-                    },
-                    {
-                        "title": "Heritage Bridge Axle Limits (Old Lakdi Pul & Shivaji Bridge)",
-                        "applies_to": "Vehicles exceeding 5.0T Gross Vehicle Weight",
-                        "impact": "Mandatory bypass via Katraj-Dehu Road Bypass or Swargate Outer Ring"
-                    },
-                    {
-                        "title": "Swargate & Pune University Flyover Clearance",
-                        "applies_to": "All Commercial Vehicles > 2.5m height",
-                        "impact": "Tall freight trucks forced to ground-level choke points"
-                    }
-                ]
-            }
-
+        """
+        Returns structured regulatory summary with explicit verification status and sources.
+        """
         return {
-            "region": "MUMBAI_MMRDA",
+            "region": self.region_key,
+            "region_name": self.name,
+            "status": self.status,
+            "citations": self.citations,
             "rules": [
                 {
-                    "title": "HCV Urban Entry Prohibition (Sec 115 Motor Vehicles Act)",
-                    "applies_to": "Freight Trucks (MCV/HCV > 7.5T GVW)",
-                    "restricted_hours": ["08:00 AM - 11:30 AM", "05:00 PM - 09:30 PM"],
-                    "exempt_vehicles": "Delivery Vans (LCVs < 3.5T GVW like Tata Ace)",
-                    "penalty": f"₹{self.violation_fine_inr:,.0f} fine + vehicle impound risk"
+                    "title": self.morning_ban_label,
+                    "applies_to": "Heavy Freight Trucks (MCV/HCV > 3.5T GVW)",
+                    "restricted_hours": [f"{self.morning_ban_start//3600:02d}:{(self.morning_ban_start%3600)//60:02d} - {self.morning_ban_end//3600:02d}:{(self.morning_ban_end%3600)//60:02d}"],
+                    "exempt_vehicles": "Delivery Vans (LCVs like Tata Ace, GVW < 3.5T)",
+                    "penalty": f"₹{self.violation_fine_inr:,.0f} fine ({self.legal_basis})",
+                    "status": self.status
                 },
                 {
-                    "title": "Flyover Overhead Height Gantries",
-                    "applies_to": "All Commercial Vehicles > 2.5m height",
-                    "impact": "Tall trucks forced onto ground-level arterial roads, incurring +35% urban travel time"
+                    "title": self.evening_ban_label,
+                    "applies_to": "Heavy Freight Trucks (MCV/HCV > 3.5T GVW)",
+                    "restricted_hours": [f"{self.evening_ban_start//3600:02d}:{(self.evening_ban_start%3600)//60:02d} - {self.evening_ban_end//3600:02d}:{(self.evening_ban_end%3600)//60:02d}"],
+                    "exempt_vehicles": "Delivery Vans (LCVs like Tata Ace, GVW < 3.5T)",
+                    "penalty": f"₹{self.violation_fine_inr:,.0f} fine ({self.legal_basis})",
+                    "status": self.status
                 },
                 {
-                    "title": "Arterial Bridge Weight Rating",
-                    "applies_to": "Vehicles exceeding 7.5T Gross Vehicle Weight",
-                    "impact": "Mandatory detour via peripheral bypass highways"
+                    "title": "Corridor Bridge & Flyover Structural Limits",
+                    "applies_to": f"Vehicles > {self.bridge_gvw_limit_tonnes}T GVW or > {self.flyover_height_limit_m}m Height",
+                    "impact": "Mandatory bypass via arterial surface corridors",
+                    "status": self.status
                 }
             ]
         }
