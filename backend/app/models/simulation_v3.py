@@ -27,14 +27,18 @@ class RuleViolationDetail(BaseModel):
 class SimulationScenarioResponse(BaseModel):
     scenario_type: str
     scenario_title: str
-    feasibility_status: Literal["COMPLIANT", "VIOLATION_DETECTED", "REROUTED_SUCCESSFULLY"]
+    feasibility_status: Literal["COMPLIANT", "VIOLATION_DETECTED", "REROUTED_SUCCESSFULLY", "INFEASIBLE"]
     baseline_cost_inr: float
     simulated_cost_inr: float
     cost_difference_inr: float
     baseline_duration_hours: float
     simulated_duration_hours: float
+    unserved_stops_count: int = 0
+    missed_deadlines_count: int = 0
+    fines_avoided_inr: float = 0.0
     violations: List[RuleViolationDetail]
     ai_advisory_recommendation: str
     suggested_action: str
     llm_engine_used: str
     simulation_duration_ms: float
+

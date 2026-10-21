@@ -8,14 +8,16 @@ Supports custom user situations and problems.
 import time
 import httpx
 import re
-from typing import Dict, Any, List, Optional
+from typing import Dict, Any, List, Optional, Tuple
 import logging
 from backend.app.config import settings
+from backend.app.models.fleet_v2 import CommercialVehicleSpec, DeliveryStop
 from backend.app.models.simulation_v3 import (
     SimulationScenarioRequest,
     SimulationScenarioResponse,
     RuleViolationDetail
 )
+
 from backend.app.services.regulation_engine import RegionalRegulationEngine
 from backend.app.services.cvrptw_solver import CVRPTWSolver
 from backend.app.services.osrm_service import OSRMService
@@ -39,8 +41,21 @@ CRITICAL FORMATTING RULES:
    - What the driver or supervisor must do right now.
 """
 
+    @staticmethod
+    def _calc_solution_metrics(solution: Dict[str, Any], fleet: List[CommercialVehicleSpec]) -> Tuple[float, float]:
+        total_cost = 0.0
+        total_dur_s = 0.0
+        for r in solution.get("routes", []):
+            if r.get("utilized", False):
+                v = next((veh for veh in fleet if veh.vehicle_id == r["vehicle_id"]), None)
+                if v:
+                    total_cost += v.fixed_dispatch_cost + ((r["total_distance_m"] / 1000.0) * v.running_cost_per_km)
+                total_dur_s += r["total_duration_s"]
+        return total_cost, total_dur_s / 3600.0
+
     @classmethod
     async def run_scenario(cls, request: SimulationScenarioRequest) -> SimulationScenarioResponse:
+
         t0 = time.perf_counter()
         reg_engine = RegionalRegulationEngine()
 
@@ -81,7 +96,9 @@ CRITICAL FORMATTING RULES:
             baseline_duration = 0.0
 
         violations: List[RuleViolationDetail] = []
-
+        unserved_stops_count = 0
+        missed_deadlines_count = 0
+        fines_avoided_inr = 0.0
 
         if custom_problem_text and custom_problem_text.strip():
             # User provided a custom situation
@@ -116,6 +133,178 @@ CRITICAL FORMATTING RULES:
                 sim_cost = baseline_cost + 280.0
                 sim_duration = baseline_duration + 0.7
                 action = "Update delivery sequence and notify destination supervisor of adjusted arrival window."
+
+        elif scenario == "VEHICLE_BREAKDOWN":
+            breakdown_vid = params.get("breakdown_vehicle_id") or (request.fleet[0].vehicle_id if request.fleet else "VEH-01")
+            disrupted_fleet = [v for v in request.fleet if v.vehicle_id != breakdown_vid]
+            title = f"Vehicle Breakdown: {breakdown_vid}"
+
+            if not disrupted_fleet:
+                status = "INFEASIBLE"
+                sim_cost = baseline_cost
+                sim_duration = baseline_duration
+                unserved_stops_count = len(request.stops)
+                action = f"Vehicle {breakdown_vid} broke down. Fleet exhausted; urgent spare vehicle required."
+            else:
+                solver = CVRPTWSolver(
+                    distance_matrix=dist_matrix,
+                    duration_matrix=base_dur_matrix,
+                    depot=request.depot,
+                    stops=request.stops,
+                    fleet=disrupted_fleet,
+                    enforce_guidelines=True,
+                    departure_time_sec=departure_sec,
+                    region=region
+                )
+                disrupted_sol = solver.solve()
+                if disrupted_sol:
+                    sim_cost, sim_duration = cls._calc_solution_metrics(disrupted_sol, disrupted_fleet)
+                    unserved_stops_count = len(disrupted_sol.get("dropped_stops", []))
+                    if unserved_stops_count > 0:
+                        status = "VIOLATION_DETECTED"
+                        action = f"Vehicle {breakdown_vid} broke down. {unserved_stops_count} stops dropped due to remaining capacity limit."
+                    else:
+                        status = "REROUTED_SUCCESSFULLY"
+                        action = f"Vehicle {breakdown_vid} broke down. Remaining fleet re-routed to absorb all stops."
+                else:
+                    status = "INFEASIBLE"
+                    sim_cost = baseline_cost
+                    sim_duration = baseline_duration
+                    unserved_stops_count = len(request.stops)
+                    action = f"Vehicle {breakdown_vid} broke down. Remaining vehicles cannot satisfy time windows or capacity."
+
+        elif scenario == "ARC_CLOSURE":
+            from_idx = params.get("from_node_index", 0)
+            to_idx = params.get("to_node_index", 1)
+            title = f"Road / Corridor Closure Between Nodes {from_idx} and {to_idx}"
+
+            pert_dist = [row[:] for row in dist_matrix]
+            pert_dur = [row[:] for row in base_dur_matrix]
+            if 0 <= from_idx < len(pert_dist) and 0 <= to_idx < len(pert_dist):
+                pert_dist[from_idx][to_idx] = 10_000_000.0
+                pert_dur[from_idx][to_idx] = 100_000.0
+                pert_dist[to_idx][from_idx] = 10_000_000.0
+                pert_dur[to_idx][from_idx] = 100_000.0
+
+            solver = CVRPTWSolver(
+                distance_matrix=pert_dist,
+                duration_matrix=pert_dur,
+                depot=request.depot,
+                stops=request.stops,
+                fleet=request.fleet,
+                enforce_guidelines=True,
+                departure_time_sec=departure_sec,
+                region=region
+            )
+            disrupted_sol = solver.solve()
+            if disrupted_sol:
+                sim_cost, sim_duration = cls._calc_solution_metrics(disrupted_sol, request.fleet)
+                unserved_stops_count = len(disrupted_sol.get("dropped_stops", []))
+                status = "REROUTED_SUCCESSFULLY" if sim_cost != baseline_cost else "COMPLIANT"
+                action = f"Rerouted fleet around closed corridor between nodes {from_idx} and {to_idx}."
+            else:
+                status = "INFEASIBLE"
+                sim_cost = baseline_cost
+                sim_duration = baseline_duration
+                unserved_stops_count = len(request.stops)
+                action = f"Closure between nodes {from_idx} and {to_idx} isolates stops; access impossible."
+
+        elif scenario == "LEG_DELAY":
+            delay_mins = params.get("delay_minutes", 60)
+            delay_sec = delay_mins * 60.0
+            delay_node = params.get("delay_node_index", 1)
+            title = f"Corridor Congestion / Leg Delay (+{delay_mins}m)"
+
+            pert_dur = [row[:] for row in base_dur_matrix]
+            if 0 <= delay_node < len(pert_dur):
+                for i in range(len(pert_dur)):
+                    pert_dur[i][delay_node] += delay_sec
+
+            solver = CVRPTWSolver(
+                distance_matrix=dist_matrix,
+                duration_matrix=pert_dur,
+                depot=request.depot,
+                stops=request.stops,
+                fleet=request.fleet,
+                enforce_guidelines=True,
+                departure_time_sec=departure_sec,
+                region=region
+            )
+            disrupted_sol = solver.solve()
+            if disrupted_sol:
+                sim_cost, sim_duration = cls._calc_solution_metrics(disrupted_sol, request.fleet)
+                unserved_stops_count = len(disrupted_sol.get("dropped_stops", []))
+                status = "COMPLIANT"
+                action = f"Fleet schedules adjusted to absorb {delay_mins} min delay on node {delay_node}."
+            else:
+                status = "VIOLATION_DETECTED"
+                sim_cost = baseline_cost + (delay_mins * 12.0) + reg_engine.violation_fine_inr
+                sim_duration = baseline_duration + (delay_mins / 60.0)
+                missed_deadlines_count = 1
+                action = f"Delay pushes vehicle into municipal peak ban or misses delivery deadline. Reschedule or shift cargo."
+                violations.append(RuleViolationDetail(
+                    vehicle_id=request.fleet[0].vehicle_id if request.fleet else "VEH-01",
+                    rule_breached=f"{region} Road Restriction Window Conflict",
+                    location=f"Stop {delay_node}",
+                    scheduled_arrival="Delayed Window",
+                    legal_hours_window="Outside Peak Hours",
+                    penalty_fine_inr=reg_engine.violation_fine_inr,
+                    delay_minutes=float(delay_mins)
+                ))
+
+        elif scenario == "URGENT_STOP":
+            urgent_data = params.get("urgent_stop", {})
+            if urgent_data:
+                new_stop = DeliveryStop(
+                    stop_id=urgent_data.get("stop_id", "URGENT-01"),
+                    name=urgent_data.get("name", "Urgent Drop"),
+                    lat=urgent_data.get("lat", request.depot.lat + 0.05),
+                    lon=urgent_data.get("lon", request.depot.lon + 0.05),
+                    demand_kg=urgent_data.get("demand_kg", 150.0),
+                    time_window_start_sec=urgent_data.get("time_window_start_sec", 28800),
+                    time_window_end_sec=urgent_data.get("time_window_end_sec", 64800)
+                )
+            else:
+                new_stop = DeliveryStop(
+                    stop_id="URGENT-01",
+                    name="Urgent Hospital Supply",
+                    lat=request.depot.lat + 0.02,
+                    lon=request.depot.lon + 0.02,
+                    demand_kg=100.0,
+                    time_window_start_sec=28800,
+                    time_window_end_sec=64800
+                )
+            disrupted_stops = request.stops + [new_stop]
+            new_coords = [[request.depot.lat, request.depot.lon]] + [[s.lat, s.lon] for s in disrupted_stops]
+            new_dist, new_dur, _ = await OSRMService.get_matrices(new_coords)
+
+            solver = CVRPTWSolver(
+                distance_matrix=new_dist,
+                duration_matrix=new_dur,
+                depot=request.depot,
+                stops=disrupted_stops,
+                fleet=request.fleet,
+                enforce_guidelines=True,
+                departure_time_sec=departure_sec,
+                region=region
+            )
+            disrupted_sol = solver.solve()
+            title = "Urgent Delivery Added on Active Route"
+            if disrupted_sol:
+                sim_cost, sim_duration = cls._calc_solution_metrics(disrupted_sol, request.fleet)
+                unserved_stops_count = len(disrupted_sol.get("dropped_stops", []))
+                if unserved_stops_count == 0:
+                    status = "COMPLIANT"
+                    action = f"Successfully inserted urgent stop {new_stop.name} into active fleet itinerary."
+                else:
+                    status = "VIOLATION_DETECTED"
+                    action = f"Urgent stop caused {unserved_stops_count} stops to be dropped due to time/capacity bounds."
+            else:
+                status = "INFEASIBLE"
+                sim_cost = baseline_cost
+                sim_duration = baseline_duration
+                unserved_stops_count = len(disrupted_stops)
+                action = f"Cannot accommodate urgent delivery {new_stop.name} within existing vehicle capacities and time windows."
 
         elif scenario == "BORDER_ENTRY_DELAY":
             delay_mins = params.get("delay_minutes", 60)
@@ -153,7 +342,7 @@ CRITICAL FORMATTING RULES:
             sim_cost = baseline_cost + 350.0
             sim_duration = baseline_duration + 0.9
             status = "COMPLIANT"
-            title = "Urgent Delivery Added on Active Route"
+            title = "Custom Delivery Scenario on Active Route"
             action = "Assign the new pickup stop to the nearest Tata Ace van that has remaining weight space."
 
         cost_diff = sim_cost - baseline_cost
@@ -184,12 +373,16 @@ CRITICAL FORMATTING RULES:
             cost_difference_inr=round(cost_diff, 2),
             baseline_duration_hours=round(baseline_duration, 2),
             simulated_duration_hours=round(sim_duration, 2),
+            unserved_stops_count=unserved_stops_count,
+            missed_deadlines_count=missed_deadlines_count,
+            fines_avoided_inr=fines_avoided_inr,
             violations=violations,
             ai_advisory_recommendation=ai_recommendation,
             suggested_action=action,
             llm_engine_used=engine_name,
             simulation_duration_ms=round(elapsed_ms, 2)
         )
+
 
     @classmethod
     async def _query_llm(
