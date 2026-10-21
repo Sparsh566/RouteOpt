@@ -17,8 +17,12 @@ from backend.app.models.simulation_v3 import (
     RuleViolationDetail
 )
 from backend.app.services.regulation_engine import RegionalRegulationEngine
+from backend.app.services.cvrptw_solver import CVRPTWSolver
+from backend.app.services.osrm_service import OSRMService
+from backend.app.utils import parse_departure_datetime
 
 logger = logging.getLogger("routeopt.simulation")
+
 
 class AISimulationEngine:
     SYSTEM_PROMPT = """
@@ -40,12 +44,44 @@ CRITICAL FORMATTING RULES:
         t0 = time.perf_counter()
         reg_engine = RegionalRegulationEngine()
 
-        baseline_cost = 3850.0
-        baseline_duration = 4.8
-        violations: List[RuleViolationDetail] = []
         scenario = request.scenario_type
         params = request.parameters
         custom_problem_text = request.custom_situation_text
+        region = params.get("region", "MUMBAI_MMRDA")
+
+        # 1. Dynamically compute baseline route and metrics
+        departure_dt, departure_sec = parse_departure_datetime(request.departure_time_iso)
+        all_coords = [[request.depot.lat, request.depot.lon]] + [[s.lat, s.lon] for s in request.stops]
+        dist_matrix, base_dur_matrix, _ = await OSRMService.get_matrices(all_coords)
+
+        baseline_solver = CVRPTWSolver(
+            distance_matrix=dist_matrix,
+            duration_matrix=base_dur_matrix,
+            depot=request.depot,
+            stops=request.stops,
+            fleet=request.fleet,
+            enforce_guidelines=True,
+            departure_time_sec=departure_sec,
+            region=region
+        )
+        baseline_solution = baseline_solver.solve()
+
+        if baseline_solution and baseline_solution.get("routes"):
+            baseline_cost = 0.0
+            baseline_duration_s = 0.0
+            for r in baseline_solution["routes"]:
+                if r.get("utilized", False):
+                    v = next((veh for veh in request.fleet if veh.vehicle_id == r["vehicle_id"]), None)
+                    if v:
+                        baseline_cost += v.fixed_dispatch_cost + ((r["total_distance_m"] / 1000.0) * v.running_cost_per_km)
+                    baseline_duration_s += r["total_duration_s"]
+            baseline_duration = baseline_duration_s / 3600.0
+        else:
+            baseline_cost = 0.0
+            baseline_duration = 0.0
+
+        violations: List[RuleViolationDetail] = []
+
 
         if custom_problem_text and custom_problem_text.strip():
             # User provided a custom situation

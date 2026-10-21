@@ -17,26 +17,11 @@ from backend.app.services.traffic_engine import TrafficEngine
 from backend.app.services.cvrptw_solver import CVRPTWSolver
 from backend.app.services.regulation_engine import RegionalRegulationEngine
 from backend.app.services.validator import RouteValidator
+from backend.app.utils import parse_departure_datetime
 
 router = APIRouter(tags=["Commercial Fleet Optimization"])
 
-def parse_departure_datetime(departure_iso: Optional[str]) -> Tuple[datetime, int]:
-    """
-    Parses departure ISO string into timezone-aware datetime (defaulting to IST, UTC+05:30)
-    and returns (datetime_obj, seconds_since_midnight).
-    """
-    ist = timezone(timedelta(hours=5, minutes=30))
-    if not departure_iso:
-        dt = datetime.now(ist).replace(hour=8, minute=30, second=0, microsecond=0)
-    else:
-        try:
-            dt = datetime.fromisoformat(departure_iso)
-            if dt.tzinfo is None:
-                dt = dt.replace(tzinfo=ist)
-        except Exception:
-            dt = datetime.now(ist).replace(hour=8, minute=30, second=0, microsecond=0)
-    sec_since_midnight = dt.hour * 3600 + dt.minute * 60 + dt.second
-    return dt, sec_since_midnight
+
 
 @router.post("/optimize", response_model=OptimizeV2Response)
 async def optimize_fleet_routes(payload: OptimizeV2Request):
