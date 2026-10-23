@@ -48,3 +48,7 @@ Thumbs.db
 Project in ide/
 Reference paper/
 Research paper/
+
+# Local benchmark output artifacts
+results/
+
