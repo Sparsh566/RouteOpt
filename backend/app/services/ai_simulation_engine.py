@@ -11,7 +11,7 @@ import re
 from typing import Dict, Any, List, Optional, Tuple
 import logging
 from backend.app.config import settings
-from backend.app.models.fleet_v2 import CommercialVehicleSpec, DeliveryStop
+from backend.app.models.fleet_v2 import CommercialVehicleSpec, DeliveryStop, VehicleClass
 from backend.app.models.simulation_v3 import (
     SimulationScenarioRequest,
     SimulationScenarioResponse,
@@ -21,9 +21,11 @@ from backend.app.models.simulation_v3 import (
 from backend.app.services.regulation_engine import RegionalRegulationEngine
 from backend.app.services.cvrptw_solver import CVRPTWSolver
 from backend.app.services.osrm_service import OSRMService
+from backend.app.services.validator import RouteValidator
 from backend.app.utils import parse_departure_datetime
 
 logger = logging.getLogger("routeopt.simulation")
+
 
 
 class AISimulationEngine:
@@ -57,12 +59,11 @@ CRITICAL FORMATTING RULES:
     async def run_scenario(cls, request: SimulationScenarioRequest) -> SimulationScenarioResponse:
 
         t0 = time.perf_counter()
-        reg_engine = RegionalRegulationEngine()
-
         scenario = request.scenario_type
         params = request.parameters
         custom_problem_text = request.custom_situation_text
         region = params.get("region", "MUMBAI_MMRDA")
+        reg_engine = RegionalRegulationEngine(region)
 
         # 1. Dynamically compute baseline route and metrics
         departure_dt, departure_sec = parse_departure_datetime(request.departure_time_iso)
@@ -101,38 +102,76 @@ CRITICAL FORMATTING RULES:
         fines_avoided_inr = 0.0
 
         if custom_problem_text and custom_problem_text.strip():
-            # User provided a custom situation
-            custom_lower = custom_problem_text.lower()
+            # User provided a custom situation: evaluate deterministically with RouteValidator & RegionalRegulationEngine
             title = "Custom Situation Analysis: " + (custom_problem_text[:45] + "..." if len(custom_problem_text) > 45 else custom_problem_text)
-            
-            # Detect rule impact keywords
-            has_ban = any(w in custom_lower for w in ["ban", "no-entry", "no entry", "police", "fine", "5 pm", "5:00", "8 am", "peak", "late", "delay", "traffic"])
-            has_barrier = any(w in custom_lower for w in ["height", "flyover", "bridge", "barrier", "clearance", "gantry", "water", "flood", "low"])
 
-            if has_ban:
-                status = "VIOLATION_DETECTED"
-                sim_cost = baseline_cost + 20600.0
-                sim_duration = baseline_duration + 3.5
-                action = "Hold heavy truck at outer hub until 9:30 PM, or transfer delivery boxes into two Tata Ace vans."
-                violations.append(RuleViolationDetail(
-                    vehicle_id="TRUCK-01 (Tata 407)",
-                    rule_breached="Municipal Commercial Vehicle Restriction Risk",
-                    location="City Road Corridor",
-                    scheduled_arrival="Peak Window",
-                    legal_hours_window="11:30 AM to 5:00 PM, or after 9:30 PM",
-                    penalty_fine_inr=reg_engine.violation_fine_inr,
-                    delay_minutes=210.0
-                ))
-            elif has_barrier:
-                status = "REROUTED_SUCCESSFULLY"
-                sim_cost = baseline_cost + 450.0
-                sim_duration = baseline_duration + 1.2
-                action = "Direct heavy trucks via ground-level bypass roads; small Tata Ace vans can proceed on standard route."
+            if not baseline_solution or not baseline_solution.get("routes"):
+                status = "INFEASIBLE"
+                sim_cost = baseline_cost
+                sim_duration = baseline_duration
+                unserved_stops_count = len(request.stops)
+                action = f"Routing constraints infeasible in region {region} under operational bounds."
             else:
-                status = "COMPLIANT"
-                sim_cost = baseline_cost + 280.0
-                sim_duration = baseline_duration + 0.7
-                action = "Update delivery sequence and notify destination supervisor of adjusted arrival window."
+                validator = RouteValidator(
+                    depot=request.depot,
+                    stops=request.stops,
+                    fleet=request.fleet,
+                    distance_matrix=dist_matrix,
+                    duration_matrix=base_dur_matrix,
+                    departure_time_sec=departure_sec,
+                    region=region,
+                    enforce_guidelines=True
+                )
+                val_report = validator.validate(
+                    routes=baseline_solution["routes"],
+                    dropped_stops=baseline_solution.get("dropped_stops", [])
+                )
+
+                # Check for regional violations from route execution
+                rule_errors = [e for e in val_report["errors"] if e.get("error_type") in [
+                    "TRUCK_PEAK_BAN_VIOLATION", "FLYOVER_HEIGHT_VIOLATION", "BRIDGE_GVW_VIOLATION"
+                ]]
+
+                # Also check if heavy vehicle was barred from serving restricted stops during peak no-entry
+                truck_present = any(v.vehicle_class == VehicleClass.FREIGHT_TRUCK for v in request.fleet)
+                for s in request.stops:
+                    if s.is_in_restricted_urban_core and truck_present:
+                        is_banned, window_name = reg_engine.check_time_in_no_entry_window(s.time_window_start_sec)
+                        if is_banned:
+                            rule_errors.append({
+                                "vehicle_id": next((v.vehicle_id for v in request.fleet if v.vehicle_class == VehicleClass.FREIGHT_TRUCK), "TRUCK-01"),
+                                "error_type": "TRUCK_PEAK_BAN_VIOLATION",
+                                "stop_index": s.name,
+                                "message": f"Stop {s.name} inside {window_name}"
+                            })
+
+                if rule_errors:
+                    status = "VIOLATION_DETECTED"
+                    sim_cost = baseline_cost + reg_engine.violation_fine_inr
+                    sim_duration = baseline_duration + 2.0
+                    action = f"Hold heavy truck outside restricted boundary or shift cargo to small delivery vans to avoid Rs {reg_engine.violation_fine_inr:,.0f} penalty."
+                    for err in rule_errors:
+                        violations.append(RuleViolationDetail(
+                            vehicle_id=err.get("vehicle_id", "TRUCK-01"),
+                            rule_breached=f"{region} Municipal Restriction: {err.get('error_type')}",
+                            location=f"Stop {err.get('stop_index')}",
+                            scheduled_arrival="Restricted Window",
+                            legal_hours_window="Outside Peak No-Entry Windows",
+                            penalty_fine_inr=reg_engine.violation_fine_inr,
+                            delay_minutes=120.0
+                        ))
+                elif not val_report["is_valid"]:
+                    status = "VIOLATION_DETECTED"
+                    sim_cost = baseline_cost
+                    sim_duration = baseline_duration
+                    action = "Operational constraint breach detected: " + "; ".join(e.get("message", "") for e in val_report["errors"][:2])
+                else:
+                    status = "COMPLIANT"
+                    sim_cost = baseline_cost
+                    sim_duration = baseline_duration
+                    action = f"Route confirmed compliant with {region} regional commercial vehicle guidelines."
+
+
 
         elif scenario == "VEHICLE_BREAKDOWN":
             breakdown_vid = params.get("breakdown_vehicle_id") or (request.fleet[0].vehicle_id if request.fleet else "VEH-01")
