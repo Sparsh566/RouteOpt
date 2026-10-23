@@ -1,0 +1,9 @@
+region,stops,solver,policy,cost_mean_inr,cost_std_inr,distance_mean_km,vehicles_mean,unserved_stops_mean,missed_deadlines_mean,runtime_mean_ms
+MUMBAI_MMRDA,10,OR-Tools,Policy_A,7695.4,215.84,220.64,2,0,0,3015.72
+MUMBAI_MMRDA,10,OR-Tools,Policy_B,7695.4,215.84,220.64,2,0,0,3002.09
+MUMBAI_MMRDA,10,OR-Tools,Policy_C,5972.79,567.31,229.78,2.5,0,0,3002.36
+MUMBAI_MMRDA,10,Greedy-Fallback,Policy_C,8647.44,1858.73,313.59,3,0.5,0,0.12
+MUMBAI_MMRDA,25,OR-Tools,Policy_A,12809.94,324.11,383.75,3,0,0,3002.54
+MUMBAI_MMRDA,25,OR-Tools,Policy_B,16281.55,2383.73,372.15,3,1.5,0,3003.44
+MUMBAI_MMRDA,25,OR-Tools,Policy_C,10483.19,36.64,454.31,4,0,0,3007.93
+MUMBAI_MMRDA,25,Greedy-Fallback,Policy_C,16580.53,1394.05,693.53,5.5,0,0,0.89
