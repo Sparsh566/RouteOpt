@@ -3,6 +3,8 @@ Tests for Issue #3:
 Remove keyword-based rule detection and enforce RegionalRegulationEngine + RouteValidator boundaries.
 """
 
+import json
+
 import pytest
 
 from backend.app.models.fleet_v2 import (
@@ -13,6 +15,7 @@ from backend.app.models.fleet_v2 import (
 )
 from backend.app.models.simulation_v3 import SimulationScenarioRequest
 from backend.app.services.ai_simulation_engine import AISimulationEngine
+from backend.app.services.regulation_engine import RegionalRegulationEngine
 
 
 @pytest.mark.asyncio
@@ -137,4 +140,23 @@ async def test_regional_rules_enforced_nagpur_fine():
     assert res.feasibility_status in ["VIOLATION_DETECTED", "INFEASIBLE"]
     if res.violations:
         assert res.violations[0].penalty_fine_inr == 10000.0
+
+
+def test_regulations_demo_status_and_no_invented_orders():
+    """Verify Mumbai regulations are designated 'demo' when lacking external source URLs and contain no invented order numbers."""
+    engine = RegionalRegulationEngine("MUMBAI_MMRDA")
+    assert engine.status == "demo"
+    summary = engine.get_guideline_summary()
+    assert summary["status"] == "demo"
+    for rule in summary["rules"]:
+        assert rule["status"] == "demo"
+
+    # Verify raw regulations.json database has demo status and no invented orders
+    data = RegionalRegulationEngine._load_data()
+    mumbai_data = data["regions"]["MUMBAI_MMRDA"]
+    assert mumbai_data["status"] == "demo"
+    raw_str = json.dumps(mumbai_data)
+    assert "42/2021" not in raw_str
+    assert "Order No." not in raw_str
+
 
