@@ -150,21 +150,13 @@ class CVRPTWSolver:
         if service_start > float(w_end):
             return False, 0.0, 0.0
 
-        # 4. Heavy Commercial Vehicle Peak Ban check
+        # 4. Heavy Commercial Vehicle Peak Ban check (Shared ban rule matching OR-Tools arrival constraint)
         if (
             self.enforce_guidelines
             and vehicle.vehicle_class == VehicleClass.FREIGHT_TRUCK
             and stop.is_in_restricted_urban_core
         ):
-            # Check if service arrival or active unloading falls inside no-entry intervals
-            m_start, m_end = self.reg_engine.morning_ban_start, self.reg_engine.morning_ban_end
-            e_start, e_end = self.reg_engine.evening_ban_start, self.reg_engine.evening_ban_end
-
-            # An arrival inside [m_start, m_end] or [e_start, e_end] is banned
-            if (m_start <= service_start <= m_end) or (e_start <= service_start <= e_end):
-                return False, 0.0, 0.0
-            service_end = service_start + float(stop.service_duration_sec)
-            if (m_start <= service_end <= m_end) or (e_start <= service_end <= e_end):
+            if self.reg_engine.is_peak_ban_active(service_start):
                 return False, 0.0, 0.0
 
         # 5. Feasibility of returning to depot within operating hours
