@@ -21,8 +21,10 @@ def test_benchmark_suite_execution(tmp_path):
     assert len(res["summary"]) > 0
     assert os.path.exists(res["csv_path"])
 
-    # Check that CSV contains headers and data rows
+    # Check that CSV contains headers and data rows including Policy_D
     with open(res["csv_path"], "r", encoding="utf-8") as f:
         lines = f.readlines()
-    assert len(lines) >= 5
+    assert len(lines) >= 6
     assert "policy" in lines[0]
+    assert any(d["policy"] == "Policy_D" for d in res["summary"])
+

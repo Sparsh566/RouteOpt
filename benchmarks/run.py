@@ -2,8 +2,9 @@
 Unified CLI Benchmark Harness for RouteOpt
 
 Compares dispatch policies and solver architectures across synthetic and real benchmark instances:
-  - Policy A: Ban-ignorant trucks (incurs fines & delays)
-  - Policy B: Ban-aware trucks only (drops peak urban stops)
+  - Policy A: Ban-ignorant trucks (incurs violations & delays)
+  - Policy B: Ban-aware trucks only (departs 08:30, drops peak urban stops)
+  - Policy D: Off-peak trucks only (departs 11:30, avoids morning peak ban)
   - Policy C: Ban-aware mixed fleet (vans + trucks)
   - Solver comparison: OR-Tools vs Greedy heuristic fallback
 
@@ -85,7 +86,7 @@ def run_single_simulation(
 
     # Setup fleet according to policy
     total_demand = sum(s.demand_kg for s in stops)
-    if policy == "Policy_A" or policy == "Policy_B":
+    if policy in ["Policy_A", "Policy_B", "Policy_D"]:
         # All trucks
         num_trucks = max(2, int((total_demand / 2800.0) + 1))
         fleet = [
@@ -100,15 +101,16 @@ def run_single_simulation(
                 running_cost_per_km=24.0
             ) for i in range(num_trucks)
         ]
-        enforce = (policy == "Policy_B")
+        enforce = (policy != "Policy_A")
+        # Policy D departs off-peak at 11:30 AM (after morning peak ban ends at 11:30 AM)
+        departure_sec = 41400 if policy == "Policy_D" else 30600
     else:  # Policy_C
         fleet = [CommercialVehicleSpec(**v) for v in instance["fleet"]]
         enforce = True
+        departure_sec = 30600  # 08:30 AM
 
     all_coords = [(depot.lat, depot.lon)] + [(s.lat, s.lon) for s in stops]
     dist_matrix, dur_matrix = _compute_haversine_matrices(all_coords)
-
-    departure_sec = 30600  # 08:30 AM
 
     solver = CVRPTWSolver(
         distance_matrix=dist_matrix,
@@ -203,7 +205,7 @@ def run_benchmark_suite(
     os.makedirs(output_dir, exist_ok=True)
     summary_data = []
 
-    policies = ["Policy_A", "Policy_B", "Policy_C"]
+    policies = ["Policy_A", "Policy_B", "Policy_D", "Policy_C"]
 
     print(f"Starting RouteOpt Benchmark Suite: {runs} runs per experiment...")
 
