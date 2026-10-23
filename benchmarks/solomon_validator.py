@@ -198,12 +198,16 @@ def run_solomon_benchmark(filepath: str, max_customers: Optional[int] = 25) -> D
     bks_info = SOLOMON_25_BKS.get(instance.name, {})
     bks_dist = bks_info.get("distance")
     gap_pct = None
-    if bks_dist is not None and bks_dist > 0:
+    status = "OPTIMAL_OR_FEASIBLE" if not dropped_stops else "PARTIAL"
+
+    # Only compute and report optimality gap if 100% of customers are served.
+    # When customers are dropped, comparing route distance against full BKS is mathematically invalid.
+    if not dropped_stops and bks_dist is not None and bks_dist > 0:
         gap_pct = ((total_distance - bks_dist) / bks_dist) * 100.0
 
     return {
         "instance_name": instance.name,
-        "status": "OPTIMAL_OR_FEASIBLE" if not dropped_stops else "PARTIAL",
+        "status": status,
         "solved": True,
         "vehicles_used": vehicles_used,
         "bks_vehicles": bks_info.get("vehicles"),
@@ -216,19 +220,23 @@ def run_solomon_benchmark(filepath: str, max_customers: Optional[int] = 25) -> D
 
 
 if __name__ == "__main__":
-    import sys
     base_dir = os.path.dirname(os.path.abspath(__file__))
     solomon_dir = os.path.join(base_dir, "data", "solomon")
 
     instances = ["C101.txt", "R101.txt", "RC101.txt"]
-    print("=" * 80)
-    print(f"{'Instance':<10} | {'Vehicles':<9} | {'BKS Veh':<8} | {'Distance':<10} | {'BKS Dist':<9} | {'Gap %':<8} | {'Solver'}")
-    print("-" * 80)
+    print("=" * 98)
+    print(f"{'Instance':<10} | {'Status':<10} | {'Vehicles':<9} | {'BKS Veh':<8} | {'Distance':<10} | {'BKS Dist':<9} | {'Dropped':<8} | {'Gap %':<18} | {'Solver'}")
+    print("-" * 98)
 
     for inst in instances:
         path = os.path.join(solomon_dir, inst)
         if os.path.exists(path):
             res = run_solomon_benchmark(path, max_customers=25)
-            gap_str = f"{res['gap_percent']:+.2f}%" if res['gap_percent'] is not None else "N/A"
-            print(f"{res['instance_name']:<10} | {res['vehicles_used']:<9} | {str(res['bks_vehicles']):<8} | {res['total_distance']:<10.2f} | {str(res['bks_distance']):<9} | {gap_str:<8} | {res['solver_used']}")
-    print("=" * 80)
+            if res["dropped_stops_count"] > 0:
+                gap_str = f"N/A ({res['dropped_stops_count']} dropped)"
+            elif res["gap_percent"] is not None:
+                gap_str = f"{res['gap_percent']:+.2f}%"
+            else:
+                gap_str = "N/A"
+            print(f"{res['instance_name']:<10} | {res['status']:<10} | {res['vehicles_used']:<9} | {str(res['bks_vehicles']):<8} | {res['total_distance']:<10.2f} | {str(res['bks_distance']):<9} | {res['dropped_stops_count']:<8} | {gap_str:<18} | {res['solver_used']}")
+    print("=" * 98)

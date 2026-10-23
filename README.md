@@ -58,15 +58,18 @@ RouteOpt uses Google OR-Tools for global mathematical optimality, with a built-i
 
 ### 3. International Literature Benchmark (Solomon CVRPTW)
 
-To prove our solver correctness against global academic standards, RouteOpt was evaluated on standard 25-customer Solomon benchmark instances against literature **Best-Known Solutions (BKS)**:
+To evaluate our solver against global academic standards, RouteOpt was tested on standard 25-customer Solomon benchmark instances against literature **Best-Known Solutions (BKS)**:
 
-| Solomon Instance | RouteOpt Vehicles | Literature BKS Vehicles | RouteOpt Distance | Literature BKS Distance | Optimality Gap % |
-| :--- | :---: | :---: | :---: | :---: | :---: |
-| **C101** (Clustered) | 3 | 3 | 206.44 km | 191.30 km | **+7.91%** |
-| **R101** (Random) | 8 | 8 | 595.80 km | 617.10 km | **-3.45%** (Beats standard BKS) |
-| **RC101** (Mixed) | 4 | 4 | 321.21 km | 461.10 km | **-30.34%** |
+| Solomon Instance | Served / Total | Vehicles | BKS Veh | RouteOpt Dist | BKS Dist | Optimality Gap % | Status |
+| :--- | :---: | :---: | :---: | :---: | :---: | :---: | :--- |
+| **C101** (Clustered) | **25 / 25** (100%) | 3 | 3 | 206.44 km | 191.30 km | **+7.91%** | :white_check_mark: Full Solution |
+| **R101** (Random) | 23 / 25 (2 dropped) | 8 | 8 | 595.80 km | 617.10 km | *N/A (partial)* | :warning: Partial (2 stops dropped due to tight time windows) |
+| **RC101** (Mixed) | 23 / 25 (2 dropped) | 4 | 4 | 321.21 km | 461.10 km | *N/A (partial)* | :warning: Partial (2 stops dropped due to tight time windows) |
 
-*(You can re-run this yourself anytime with `python benchmarks/solomon_validator.py`)*
+> [!NOTE]
+> **Honest Benchmark Reporting:** Optimality gap is only mathematically valid when 100% of customers are served (such as **C101**, which achieves an optimality gap of **+7.91%** vs. literature BKS). For instances with dropped customers under the solver's 3-second limit, route distance is shorter purely due to unserved stops; hence, comparing distance against full-service BKS is invalid and correctly marked as *N/A (partial)*.
+
+*(You can re-run this yourself anytime with python benchmarks/solomon_validator.py)*
 
 ### 4. Test Suite Verification Proof
 - **35 automated test cases** across 10 test modules covering regression fixes, road regulations, route validation, and simulation edge cases.
