@@ -2,20 +2,20 @@
 FastAPI Controller: Commercial Fleet Route Optimization (Vans & Trucks)
 """
 
-from fastapi import APIRouter, HTTPException
-from typing import List, Dict, Any, Tuple, Optional
 import time
-from datetime import datetime, timedelta, timezone
+from datetime import timedelta
+
+from fastapi import APIRouter, HTTPException
+
 from backend.app.models.fleet_v2 import (
     OptimizeV2Request,
     OptimizeV2Response,
+    StopVisit,
     VehicleRouteResult,
-    StopVisit
 )
+from backend.app.services.cvrptw_solver import CVRPTWSolver
 from backend.app.services.osrm_service import OSRMService
 from backend.app.services.traffic_engine import TrafficEngine
-from backend.app.services.cvrptw_solver import CVRPTWSolver
-from backend.app.services.regulation_engine import RegionalRegulationEngine
 from backend.app.services.validator import RouteValidator
 from backend.app.utils import parse_departure_datetime
 
@@ -69,7 +69,7 @@ async def optimize_fleet_routes(payload: OptimizeV2Request):
         )
 
     # 6. Build detailed vehicle routes and GeoJSON polylines
-    routes: List[VehicleRouteResult] = []
+    routes: list[VehicleRouteResult] = []
     total_fleet_dist = 0.0
     total_fleet_dur = 0.0
     total_fleet_cost = 0.0
@@ -86,7 +86,7 @@ async def optimize_fleet_routes(payload: OptimizeV2Request):
         if not route_data["utilized"]:
             continue
 
-        stops_visited: List[StopVisit] = []
+        stops_visited: list[StopVisit] = []
         route_coords = []
 
         for item in schedule_nodes:
@@ -189,7 +189,7 @@ async def optimize_fleet_routes(payload: OptimizeV2Request):
         fixed_dispatch_cost_inr=round(total_fixed_cost, 2),
         variable_running_cost_inr=round(total_variable_cost, 2),
         solver_used=solution.get("solver_used", "Google OR-Tools (CVRPTW)"),
-        departure_time=payload.departure_time_iso,
+        departure_time=payload.departure_time_iso or "",
         traffic_factor_applied=traffic_factor,
         regulatory_compliance_notes=compliance_notes,
         solve_duration_ms=round(solve_ms, 2),

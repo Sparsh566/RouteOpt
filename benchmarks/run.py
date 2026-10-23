@@ -122,6 +122,7 @@ def run_single_simulation(
     )
 
     t0 = time.perf_counter()
+    sol: Optional[Dict[str, Any]]
     if force_greedy:
         sol = solver._solve_greedy_fallback()
     else:

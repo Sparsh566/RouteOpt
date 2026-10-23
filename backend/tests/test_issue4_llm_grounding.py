@@ -3,11 +3,22 @@ Tests for Issue #4:
 Restrict LLM to explaining computed numbers and label deterministic vs AI text.
 """
 
+from unittest.mock import patch
+
 import pytest
-from unittest.mock import patch, AsyncMock
-from backend.app.models.fleet_v2 import CommercialVehicleSpec, VehicleClass, DeliveryStop, DepotLocation
-from backend.app.models.simulation_v3 import SimulationScenarioRequest, SimulationScenarioResponse
+
+from backend.app.models.fleet_v2 import (
+    CommercialVehicleSpec,
+    DeliveryStop,
+    DepotLocation,
+    VehicleClass,
+)
+from backend.app.models.simulation_v3 import (
+    SimulationScenarioRequest,
+    SimulationScenarioResponse,
+)
 from backend.app.services.ai_simulation_engine import AISimulationEngine
+
 
 @pytest.fixture
 def basic_scenario_request():

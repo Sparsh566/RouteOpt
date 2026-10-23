@@ -3,20 +3,23 @@ Test Suite for RouteOpt Versions 2 & 3
 Verifies CVRPTW solver, regional road regulations, traffic matrices, and AI What-If simulations.
 """
 
-import pytest
 from datetime import datetime
-from backend.app.services.regulation_engine import RegionalRegulationEngine
-from backend.app.services.traffic_engine import TrafficEngine
-from backend.app.services.osrm_service import OSRMService
-from backend.app.services.cvrptw_solver import CVRPTWSolver
-from backend.app.services.ai_simulation_engine import AISimulationEngine
+
+import pytest
+
 from backend.app.models.fleet_v2 import (
     CommercialVehicleSpec,
-    VehicleClass,
     DeliveryStop,
-    DepotLocation
+    DepotLocation,
+    VehicleClass,
 )
 from backend.app.models.simulation_v3 import SimulationScenarioRequest
+from backend.app.services.ai_simulation_engine import AISimulationEngine
+from backend.app.services.cvrptw_solver import CVRPTWSolver
+from backend.app.services.osrm_service import OSRMService
+from backend.app.services.regulation_engine import RegionalRegulationEngine
+from backend.app.services.traffic_engine import TrafficEngine
+
 
 def test_regional_regulations_no_entry_window():
     engine = RegionalRegulationEngine()
@@ -38,7 +41,7 @@ def test_pune_pmc_regulations():
     engine = RegionalRegulationEngine("PUNE_PMC")
     assert engine.violation_fine_inr == 15000.0
     assert engine.bridge_gvw_limit_tonnes == 5.0
-    
+
     # 10:00 AM = 36000s (inside Pune morning ban 09:00 - 12:00)
     is_banned, name = engine.check_time_in_no_entry_window(36000)
     assert is_banned is True
@@ -57,7 +60,7 @@ def test_nagpur_nmc_regulations():
     engine = RegionalRegulationEngine("NAGPUR_NMC")
     assert engine.violation_fine_inr == 10000.0
     assert engine.bridge_gvw_limit_tonnes == 5.0
-    
+
     # 09:30 AM = 34200s (inside Nagpur morning ban 08:30 - 11:30)
     is_banned, name = engine.check_time_in_no_entry_window(34200)
     assert is_banned is True
@@ -84,7 +87,7 @@ def test_flyover_height_clearance():
     )
     can_pass, reason = engine.check_vehicle_access(truck, is_flyover=True)
     assert can_pass is False
-    assert "height" in reason.lower()
+    assert reason is not None and "height" in reason.lower()
 
     # Van with 1.9m height
     van = CommercialVehicleSpec(

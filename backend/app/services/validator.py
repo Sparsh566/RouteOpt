@@ -8,21 +8,27 @@ Independently verifies route feasibility and compliance with hard constraints:
 - Vehicle access eligibility (height clearance, GVW bridge ratings, HCV peak bans)
 """
 
-from typing import List, Dict, Any, Tuple, Optional, Literal
 import logging
-from backend.app.models.fleet_v2 import CommercialVehicleSpec, VehicleClass, DeliveryStop, DepotLocation
+from typing import Any, Literal
+
+from backend.app.models.fleet_v2 import (
+    CommercialVehicleSpec,
+    DeliveryStop,
+    DepotLocation,
+    VehicleClass,
+)
 from backend.app.services.regulation_engine import RegionalRegulationEngine
 
 logger = logging.getLogger("routeopt.validator")
 
 class RouteValidationError:
-    def __init__(self, code: str, message: str, stop_id: Optional[str] = None, vehicle_id: Optional[str] = None):
+    def __init__(self, code: str, message: str, stop_id: str | None = None, vehicle_id: str | None = None):
         self.code = code
         self.message = message
         self.stop_id = stop_id
         self.vehicle_id = vehicle_id
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "code": self.code,
             "message": self.message,
@@ -34,10 +40,10 @@ class RouteValidator:
     def __init__(
         self,
         depot: DepotLocation,
-        stops: List[DeliveryStop],
-        fleet: List[CommercialVehicleSpec],
-        distance_matrix: List[List[float]],
-        duration_matrix: List[List[float]],
+        stops: list[DeliveryStop],
+        fleet: list[CommercialVehicleSpec],
+        distance_matrix: list[list[float]],
+        duration_matrix: list[list[float]],
         departure_time_sec: int = 30600,
         region: str = "MUMBAI_MMRDA",
         enforce_guidelines: bool = True
@@ -58,7 +64,7 @@ class RouteValidator:
         self.shift_end_sec = departure_time_sec + depot.operating_hours_sec
 
         # Normalized time windows (in seconds since midnight)
-        self.normalized_windows: Dict[str, Tuple[int, int]] = {}
+        self.normalized_windows: dict[str, tuple[int, int]] = {}
         for s in stops:
             if s.time_window_start_sec == 0:
                 w_start = departure_time_sec
@@ -76,9 +82,9 @@ class RouteValidator:
 
     def validate(
         self,
-        routes: List[Dict[str, Any]],
-        dropped_stops: List[str]
-    ) -> Dict[str, Any]:
+        routes: list[dict[str, Any]],
+        dropped_stops: list[str]
+    ) -> dict[str, Any]:
         """
         Validates solution routes and dropped stops against all operational and regulatory constraints.
         Returns:
@@ -87,13 +93,13 @@ class RouteValidator:
             errors: List[Dict[str, Any]]
             summary: Dict[str, Any]
         """
-        errors: List[RouteValidationError] = []
-        served_stop_counts: Dict[str, int] = {s.stop_id: 0 for s in self.stops}
+        errors: list[RouteValidationError] = []
+        served_stop_counts: dict[str, int] = {s.stop_id: 0 for s in self.stops}
         total_verified_distance = 0.0
         total_verified_duration = 0.0
 
         for r in routes:
-            v_id = r.get("vehicle_id")
+            v_id = str(r.get("vehicle_id") or "")
             vehicle = self.vehicle_by_id.get(v_id)
             if not vehicle:
                 errors.append(RouteValidationError(

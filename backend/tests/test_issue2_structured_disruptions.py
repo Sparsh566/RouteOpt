@@ -8,9 +8,16 @@ Structured disruption scenarios in AISimulationEngine:
 """
 
 import pytest
-from backend.app.models.fleet_v2 import CommercialVehicleSpec, VehicleClass, DeliveryStop, DepotLocation
+
+from backend.app.models.fleet_v2 import (
+    CommercialVehicleSpec,
+    DeliveryStop,
+    DepotLocation,
+    VehicleClass,
+)
 from backend.app.models.simulation_v3 import SimulationScenarioRequest
 from backend.app.services.ai_simulation_engine import AISimulationEngine
+
 
 @pytest.fixture
 def base_scenario_setup():

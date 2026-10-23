@@ -5,9 +5,16 @@ and detects deliberately invalid routes with structured error codes.
 """
 
 import pytest
-from backend.app.services.validator import RouteValidator
+
+from backend.app.models.fleet_v2 import (
+    CommercialVehicleSpec,
+    DeliveryStop,
+    DepotLocation,
+    VehicleClass,
+)
 from backend.app.services.cvrptw_solver import CVRPTWSolver
-from backend.app.models.fleet_v2 import CommercialVehicleSpec, VehicleClass, DeliveryStop, DepotLocation
+from backend.app.services.validator import RouteValidator
+
 
 @pytest.fixture
 def depot():

@@ -4,15 +4,22 @@ Dynamic baseline re-solving in AISimulationEngine.
 """
 
 import pytest
-from backend.app.models.fleet_v2 import CommercialVehicleSpec, VehicleClass, DeliveryStop, DepotLocation
+
+from backend.app.models.fleet_v2 import (
+    CommercialVehicleSpec,
+    DeliveryStop,
+    DepotLocation,
+    VehicleClass,
+)
 from backend.app.models.simulation_v3 import SimulationScenarioRequest
 from backend.app.services.ai_simulation_engine import AISimulationEngine
+
 
 @pytest.mark.asyncio
 async def test_baseline_is_dynamic_not_hardcoded():
     """Verify that baseline cost & duration are computed from solver, not hardcoded 3850.0 / 4.8."""
     depot = DepotLocation(depot_id="D1", name="Bhiwandi Hub", lat=19.2967, lon=73.0631)
-    
+
     stop_small = [
         DeliveryStop(stop_id="S1", name="Mulund", lat=19.1726, lon=72.9565, demand_kg=200)
     ]

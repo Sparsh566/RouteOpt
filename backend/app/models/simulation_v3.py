@@ -1,16 +1,23 @@
+from typing import Any, Literal
+
 from pydantic import BaseModel, Field
-from typing import List, Optional, Dict, Any, Literal
-from backend.app.models.fleet_v2 import CommercialVehicleSpec, DeliveryStop, DepotLocation
+
+from backend.app.models.fleet_v2 import (
+    CommercialVehicleSpec,
+    DeliveryStop,
+    DepotLocation,
+)
+
 
 class SimulationScenarioRequest(BaseModel):
     scenario_type: str = Field(default="CUSTOM_SITUATION", description="Selected preset or CUSTOM_SITUATION")
-    custom_situation_text: Optional[str] = Field(default=None, description="Free-text custom situation described by the user")
-    scenario_title: Optional[str] = None
+    custom_situation_text: str | None = Field(default=None, description="Free-text custom situation described by the user")
+    scenario_title: str | None = None
     depot: DepotLocation
-    fleet: List[CommercialVehicleSpec]
-    stops: List[DeliveryStop]
+    fleet: list[CommercialVehicleSpec]
+    stops: list[DeliveryStop]
     departure_time_iso: str = Field(default="2026-10-09T08:30:00+05:30")
-    parameters: Dict[str, Any] = Field(
+    parameters: dict[str, Any] = Field(
         default_factory=dict,
         description="Scenario inputs (e.g. delay_minutes, new_order, low_bridge_location)"
     )
@@ -36,7 +43,7 @@ class SimulationScenarioResponse(BaseModel):
     unserved_stops_count: int = 0
     missed_deadlines_count: int = 0
     fines_avoided_inr: float = 0.0
-    violations: List[RuleViolationDetail]
+    violations: list[RuleViolationDetail]
     ai_advisory_recommendation: str
     ai_advisory_explanation: str
     is_ai_generated: bool = False

@@ -4,8 +4,12 @@ Solomon CVRPTW benchmark validation and gap reporting.
 """
 
 import os
-import pytest
-from benchmarks.solomon_validator import SolomonInstance, run_solomon_benchmark, SOLOMON_25_BKS
+
+from benchmarks.solomon_validator import (
+    SolomonInstance,
+    run_solomon_benchmark,
+)
+
 
 def test_solomon_instance_loader():
     base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))

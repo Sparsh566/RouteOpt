@@ -3,16 +3,16 @@ FastAPI Controller: AI 'What-If' Simulation & Regulatory Guidelines
 Includes rate limiting, LLM input sanitization, and structured disruption analysis.
 """
 
-from fastapi import APIRouter, HTTPException, Request
-from typing import Optional
-import time
-import re
 import html
+import re
+import time
 from collections import defaultdict
+
+from fastapi import APIRouter, HTTPException, Request
 
 from backend.app.models.simulation_v3 import (
     SimulationScenarioRequest,
-    SimulationScenarioResponse
+    SimulationScenarioResponse,
 )
 from backend.app.services.ai_simulation_engine import AISimulationEngine
 from backend.app.services.regulation_engine import RegionalRegulationEngine
@@ -22,7 +22,7 @@ router = APIRouter(tags=["AI Simulation Sandbox"])
 # In-memory sliding window rate limiter: max 20 requests per 60 seconds per IP
 RATE_LIMIT_MAX_REQUESTS = 20
 RATE_LIMIT_WINDOW_SECONDS = 60
-_request_timestamps = defaultdict(list)
+_request_timestamps: dict[str, list[float]] = defaultdict(list)
 
 def _check_rate_limit(client_ip: str):
     now = time.time()
@@ -35,7 +35,7 @@ def _check_rate_limit(client_ip: str):
         )
     _request_timestamps[client_ip].append(now)
 
-def _sanitize_text(text: Optional[str]) -> Optional[str]:
+def _sanitize_text(text: str | None) -> str | None:
     if not text:
         return text
     # Limit length
@@ -62,7 +62,7 @@ async def run_simulation(payload: SimulationScenarioRequest, request: Request):
         result = await AISimulationEngine.run_scenario(payload)
         return result
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"AI Simulation execution failed: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"AI Simulation execution failed: {e!s}")
 
 @router.get("/guidelines")
 async def get_regional_guidelines(region: str = "MUMBAI_MMRDA"):

@@ -1,8 +1,8 @@
+from datetime import datetime, timedelta, timezone
+
 from fastapi import Request
 from fastapi.responses import JSONResponse
 
-from datetime import datetime, timedelta, timezone
-from typing import Optional, Tuple
 
 class ExternalServiceException(Exception):
     def __init__(self, name: str, message: str):
@@ -18,7 +18,7 @@ async def external_service_exception_handler(request: Request, exc: ExternalServ
         }
     )
 
-def parse_departure_datetime(departure_iso: Optional[str]) -> Tuple[datetime, int]:
+def parse_departure_datetime(departure_iso: str | None) -> tuple[datetime, int]:
     """
     Parses departure ISO string into timezone-aware datetime (defaulting to IST, UTC+05:30)
     and returns (datetime_obj, seconds_since_midnight).

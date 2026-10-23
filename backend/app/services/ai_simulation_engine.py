@@ -5,22 +5,27 @@ Strictly avoids emojis, em dashes, and AI buzzwords.
 Supports custom user situations and problems.
 """
 
-import time
-import httpx
-import re
-from typing import Dict, Any, List, Optional, Tuple
 import logging
+import re
+import time
+from typing import Any, Literal
+
+import httpx
+
 from backend.app.config import settings
-from backend.app.models.fleet_v2 import CommercialVehicleSpec, DeliveryStop, VehicleClass
+from backend.app.models.fleet_v2 import (
+    CommercialVehicleSpec,
+    DeliveryStop,
+    VehicleClass,
+)
 from backend.app.models.simulation_v3 import (
+    RuleViolationDetail,
     SimulationScenarioRequest,
     SimulationScenarioResponse,
-    RuleViolationDetail
 )
-
-from backend.app.services.regulation_engine import RegionalRegulationEngine
 from backend.app.services.cvrptw_solver import CVRPTWSolver
 from backend.app.services.osrm_service import OSRMService
+from backend.app.services.regulation_engine import RegionalRegulationEngine
 from backend.app.services.validator import RouteValidator
 from backend.app.utils import parse_departure_datetime
 
@@ -46,7 +51,7 @@ STRICT NUMERICAL AND DECISION BOUNDARIES:
 """
 
     @staticmethod
-    def _calc_solution_metrics(solution: Dict[str, Any], fleet: List[CommercialVehicleSpec]) -> Tuple[float, float]:
+    def _calc_solution_metrics(solution: dict[str, Any], fleet: list[CommercialVehicleSpec]) -> tuple[float, float]:
         total_cost = 0.0
         total_dur_s = 0.0
         for r in solution.get("routes", []):
@@ -98,7 +103,8 @@ STRICT NUMERICAL AND DECISION BOUNDARIES:
             baseline_cost = 0.0
             baseline_duration = 0.0
 
-        violations: List[RuleViolationDetail] = []
+        status: Literal["COMPLIANT", "VIOLATION_DETECTED", "REROUTED_SUCCESSFULLY", "INFEASIBLE"] = "COMPLIANT"
+        violations: list[RuleViolationDetail] = []
         unserved_stops_count = 0
         missed_deadlines_count = 0
         fines_avoided_inr = 0.0
@@ -282,7 +288,7 @@ STRICT NUMERICAL AND DECISION BOUNDARIES:
                 sim_cost = baseline_cost + (delay_mins * 12.0) + reg_engine.violation_fine_inr
                 sim_duration = baseline_duration + (delay_mins / 60.0)
                 missed_deadlines_count = 1
-                action = f"Delay pushes vehicle into municipal peak ban or misses delivery deadline. Reschedule or shift cargo."
+                action = "Delay pushes vehicle into municipal peak ban or misses delivery deadline. Reschedule or shift cargo."
                 violations.append(RuleViolationDetail(
                     vehicle_id=request.fleet[0].vehicle_id if request.fleet else "VEH-01",
                     rule_breached=f"{region} Road Restriction Window Conflict",
@@ -434,9 +440,9 @@ STRICT NUMERICAL AND DECISION BOUNDARIES:
         status: str,
         cost_diff: float,
         dur_diff: float,
-        violations: List[RuleViolationDetail],
+        violations: list[RuleViolationDetail],
         suggested_action: str,
-        custom_problem: Optional[str] = None
+        custom_problem: str | None = None
     ) -> tuple[str, str, bool]:
         if custom_problem and custom_problem.strip():
             user_prompt = (

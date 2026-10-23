@@ -2,10 +2,12 @@
 OSRM Routing and Matrix Service with Haversine Road-Winding Fallback
 """
 
-import httpx
-import math
-from typing import List, Tuple, Dict, Any
 import logging
+import math
+from typing import Any
+
+import httpx
+
 from backend.app.config import settings
 
 logger = logging.getLogger("routeopt.osrm")
@@ -24,7 +26,7 @@ class OSRMService:
         return R * c
 
     @classmethod
-    async def get_matrices(cls, coordinates: List[List[float]]) -> Tuple[List[List[float]], List[List[float]], bool]:
+    async def get_matrices(cls, coordinates: list[list[float]]) -> tuple[list[list[float]], list[list[float]], bool]:
         """
         Coordinates in [[lat, lon], ...]
         Returns: (distance_matrix_meters, duration_matrix_seconds, is_real_osrm)
@@ -67,7 +69,7 @@ class OSRMService:
         return dist_matrix, dur_matrix, False
 
     @classmethod
-    async def get_route_geometry(cls, coordinates: List[List[float]]) -> Dict[str, Any]:
+    async def get_route_geometry(cls, coordinates: list[list[float]]) -> dict[str, Any]:
         """
         Fetches route geometry GeoJSON from OSRM Route service, or creates straight-line GeoJSON.
         """

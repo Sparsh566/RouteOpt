@@ -1,11 +1,16 @@
 import os
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
+
 from backend.app.config import settings
 from backend.app.controllers.optimize import router as optimize_router
 from backend.app.controllers.simulate import router as simulate_router
-from backend.app.utils import ExternalServiceException, external_service_exception_handler
+from backend.app.utils import (
+    ExternalServiceException,
+    external_service_exception_handler,
+)
 
 app = FastAPI(
     title=settings.APP_NAME,
@@ -27,7 +32,7 @@ app.include_router(optimize_router, prefix="/api")
 app.include_router(simulate_router, prefix="/api")
 
 # Register custom exception handlers
-app.add_exception_handler(ExternalServiceException, external_service_exception_handler)
+app.add_exception_handler(ExternalServiceException, external_service_exception_handler)  # type: ignore[arg-type]
 
 @app.get("/health", tags=["System"])
 async def health_check():

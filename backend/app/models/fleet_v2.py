@@ -1,6 +1,8 @@
-from pydantic import BaseModel, Field
-from typing import List, Optional, Literal, Dict, Any
 from enum import Enum
+from typing import Any, Literal
+
+from pydantic import BaseModel, Field
+
 
 class VehicleClass(str, Enum):
     DELIVERY_VAN = "van"       # Light Commercial Vehicle (LCV: e.g. Tata Ace, Bolero Maxi Truck)
@@ -15,7 +17,7 @@ class CommercialVehicleSpec(BaseModel):
     payload_capacity_kg: float = Field(..., gt=0, description="Max cargo weight limit")
     fixed_dispatch_cost: float = Field(default=250.0, description="Driver + daily fixed vehicle charge")
     running_cost_per_km: float = Field(default=12.0, description="Fuel + maintenance cost per km")
-    color_hex: Optional[str] = Field(default="#06b6d4", description="Hex color for map display")
+    color_hex: str | None = Field(default="#06b6d4", description="Hex color for map display")
 
 class DeliveryStop(BaseModel):
     stop_id: str
@@ -28,7 +30,7 @@ class DeliveryStop(BaseModel):
     service_duration_sec: int = Field(default=300, description="Unloading dock dwell time (default 5m)")
     is_in_restricted_urban_core: bool = Field(default=False, description="Inside municipal truck no-entry zone")
     requires_flyover: bool = Field(default=False, description="Requires flyover transit (checks overhead clearance gantry)")
-    max_access_gvw_tonnes: Optional[float] = Field(default=None, description="Bridge or corridor maximum GVW limit in metric tonnes")
+    max_access_gvw_tonnes: float | None = Field(default=None, description="Bridge or corridor maximum GVW limit in metric tonnes")
 
 class DepotLocation(BaseModel):
     depot_id: str = Field(default="DEPOT-01")
@@ -39,9 +41,9 @@ class DepotLocation(BaseModel):
 
 class OptimizeV2Request(BaseModel):
     depot: DepotLocation
-    stops: List[DeliveryStop] = Field(..., min_length=1)
-    fleet: List[CommercialVehicleSpec] = Field(..., min_length=1)
-    departure_time_iso: Optional[str] = Field(default="2026-10-09T08:30:00+05:30")
+    stops: list[DeliveryStop] = Field(..., min_length=1)
+    fleet: list[CommercialVehicleSpec] = Field(..., min_length=1)
+    departure_time_iso: str | None = Field(default="2026-10-09T08:30:00+05:30")
     region: str = Field(default="MUMBAI_MMRDA")
     apply_traffic_congestion: bool = Field(default=True)
     enforce_government_guidelines: bool = Field(default=True)
@@ -62,18 +64,18 @@ class VehicleRouteResult(BaseModel):
     vehicle_name: str
     vehicle_class: VehicleClass
     color_hex: str
-    stops_visited: List[StopVisit]
+    stops_visited: list[StopVisit]
     total_distance_m: float
     total_duration_s: float
     total_load_kg: float
     total_wait_s: float
     estimated_cost_inr: float
-    route_geometry: Dict[str, Any]
+    route_geometry: dict[str, Any]
 
 class OptimizeV2Response(BaseModel):
     status: Literal["SUCCESS", "PARTIAL", "INFEASIBLE"]
-    routes: List[VehicleRouteResult]
-    dropped_stops: List[str] = Field(default_factory=list)
+    routes: list[VehicleRouteResult]
+    dropped_stops: list[str] = Field(default_factory=list)
     total_fleet_distance_km: float
     total_fleet_duration_hours: float
     total_fleet_cost_inr: float
@@ -82,7 +84,7 @@ class OptimizeV2Response(BaseModel):
     solver_used: str = "Google OR-Tools (CVRPTW)"
     departure_time: str = ""
     traffic_factor_applied: float
-    regulatory_compliance_notes: List[str]
+    regulatory_compliance_notes: list[str]
     solve_duration_ms: float
     is_real_road_data: bool = Field(default=False, description="True if computed using live OSRM road network, False if estimated via detour model")
-    validation_errors: List[Dict[str, Any]] = Field(default_factory=list)
+    validation_errors: list[dict[str, Any]] = Field(default_factory=list)

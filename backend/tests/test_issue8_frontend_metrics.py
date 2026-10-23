@@ -3,8 +3,8 @@ Tests for Issue #8:
 Frontend research-ready metrics response fields and error/cost reporting.
 """
 
-import pytest
 from starlette.testclient import TestClient
+
 from backend.app.main import app
 
 client = TestClient(app)

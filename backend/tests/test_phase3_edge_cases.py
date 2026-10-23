@@ -14,17 +14,24 @@ Covers:
 - OSRM service failure fallback
 """
 
+
 import pytest
-from datetime import datetime
 from fastapi.testclient import TestClient
+
+from backend.app.controllers.optimize import (
+    parse_departure_datetime,
+)
 from backend.app.main import app
-from backend.app.models.fleet_v2 import CommercialVehicleSpec, VehicleClass, DeliveryStop, DepotLocation, OptimizeV2Request
+from backend.app.models.fleet_v2 import (
+    CommercialVehicleSpec,
+    DeliveryStop,
+    DepotLocation,
+    VehicleClass,
+)
 from backend.app.models.simulation_v3 import SimulationScenarioRequest
-from backend.app.services.cvrptw_solver import CVRPTWSolver
-from backend.app.services.validator import RouteValidator
-from backend.app.services.osrm_service import OSRMService
 from backend.app.services.ai_simulation_engine import AISimulationEngine
-from backend.app.controllers.optimize import parse_departure_datetime, optimize_fleet_routes
+from backend.app.services.cvrptw_solver import CVRPTWSolver
+from backend.app.services.osrm_service import OSRMService
 
 client = TestClient(app)
 

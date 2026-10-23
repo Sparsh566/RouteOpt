@@ -3,10 +3,11 @@ Tests for Issue #6:
 Synthetic Mumbai & Pune benchmark instance generator.
 """
 
-import os
 import json
-import pytest
+import os
+
 from benchmarks.generator import generate_instance, save_instance_to_file
+
 
 def test_generator_reproducibility():
     """Generating with same seed produces identical instances."""

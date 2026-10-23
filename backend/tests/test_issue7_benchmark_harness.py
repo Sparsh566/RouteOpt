@@ -4,8 +4,9 @@ Unified CLI benchmark harness with policies, CSV, and plot outputs.
 """
 
 import os
-import pytest
+
 from benchmarks.run import run_benchmark_suite
+
 
 def test_benchmark_suite_execution(tmp_path):
     """Run a lightweight benchmark run and verify CSV and plots are generated."""

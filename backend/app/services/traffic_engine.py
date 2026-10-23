@@ -3,11 +3,11 @@ Indian Peak-Hour Traffic Congestion Matrix Multiplier
 """
 
 from datetime import datetime
-from typing import List, Union
+
 
 class TrafficEngine:
     @staticmethod
-    def get_congestion_factor(departure_time: Union[datetime, str, float, int] = None) -> float:
+    def get_congestion_factor(departure_time: datetime | str | float | None = None) -> float:
         """
         Calculates empirical traffic degradation factor for Indian urban corridors.
         Supports datetime object, ISO string, or float hour (e.g. 8.5 for 8:30 AM).
@@ -38,7 +38,7 @@ class TrafficEngine:
             return 1.00  # Free-flow nighttime
 
     @classmethod
-    def apply_traffic(cls, duration_matrix: List[List[float]], departure_iso: str = None) -> List[List[float]]:
+    def apply_traffic(cls, duration_matrix: list[list[float]], departure_iso: str | None = None) -> list[list[float]]:
         factor = cls.get_congestion_factor(departure_iso)
         n = len(duration_matrix)
         return [

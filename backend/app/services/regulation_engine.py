@@ -4,11 +4,12 @@ Loads structured municipal regulations from backend/app/data/regulations.json.
 Maintains verified citations for Mumbai MMRDA, with other jurisdictions marked demo/assumption.
 """
 
-import os
 import json
-from typing import Tuple, List, Dict, Any, Optional
 import logging
-from backend.app.models.fleet_v2 import CommercialVehicleSpec, VehicleClass
+import os
+from typing import Any
+
+from backend.app.models.fleet_v2 import CommercialVehicleSpec
 
 logger = logging.getLogger("routeopt.regulations")
 
@@ -18,7 +19,7 @@ class RegionalRegulationEngine:
     _cached_data = None
 
     @classmethod
-    def _load_data(cls) -> Dict[str, Any]:
+    def _load_data(cls) -> dict[str, Any]:
         if cls._cached_data is None:
             if os.path.exists(DATA_FILE_PATH):
                 try:
@@ -78,7 +79,7 @@ class RegionalRegulationEngine:
         self.violation_fine_inr = penalties.get("violation_fine_inr", 20000.0)
         self.legal_basis = penalties.get("legal_basis", "Motor Vehicles Act, 1988")
 
-    def check_time_in_no_entry_window(self, clock_seconds: int) -> Tuple[bool, str]:
+    def check_time_in_no_entry_window(self, clock_seconds: int) -> tuple[bool, str]:
         """
         Verifies if arrival time falls into Heavy Goods Vehicle (HGV/HCV) no-entry ban hours.
         """
@@ -89,19 +90,19 @@ class RegionalRegulationEngine:
             return True, self.evening_ban_label
         return False, "Unrestricted Entry"
 
-    def check_vehicle_access(self, vehicle: CommercialVehicleSpec, is_flyover: bool = False) -> Tuple[bool, Optional[str]]:
+    def check_vehicle_access(self, vehicle: CommercialVehicleSpec, is_flyover: bool = False) -> tuple[bool, str | None]:
         """
         Verifies whether vehicle height and weight comply with structural barriers.
         """
         if is_flyover and vehicle.height_meters > self.flyover_height_limit_m:
             return False, f"Vehicle height ({vehicle.height_meters}m) exceeds {self.flyover_height_limit_m}m flyover clearance gantry"
-        
+
         if vehicle.gross_vehicle_weight_tonnes > self.bridge_gvw_limit_tonnes:
             return False, f"Vehicle GVW ({vehicle.gross_vehicle_weight_tonnes}T) exceeds {self.bridge_gvw_limit_tonnes}T bridge load capacity"
-            
+
         return True, None
 
-    def get_guideline_summary(self) -> Dict[str, Any]:
+    def get_guideline_summary(self) -> dict[str, Any]:
         """
         Returns structured regulatory summary with explicit verification status and sources.
         """

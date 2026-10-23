@@ -3,13 +3,19 @@ Bug Reproduction & Regression Test Suite (B1 - B9)
 These tests reproduce known bugs first, and verify fixes once applied.
 """
 
+
 import pytest
-from datetime import datetime
-from backend.app.services.cvrptw_solver import CVRPTWSolver
-from backend.app.models.fleet_v2 import CommercialVehicleSpec, VehicleClass, DeliveryStop, DepotLocation
+
 from backend.app.controllers.optimize import optimize_fleet_routes
-from backend.app.models.fleet_v2 import OptimizeV2Request
-from backend.app.services.traffic_engine import TrafficEngine
+from backend.app.models.fleet_v2 import (
+    CommercialVehicleSpec,
+    DeliveryStop,
+    DepotLocation,
+    OptimizeV2Request,
+    VehicleClass,
+)
+from backend.app.services.cvrptw_solver import CVRPTWSolver
+
 
 @pytest.fixture
 def depot():

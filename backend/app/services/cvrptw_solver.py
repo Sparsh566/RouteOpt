@@ -12,9 +12,15 @@ except (ImportError, Exception):
     routing_enums_pb2 = None
     ORTOOLS_AVAILABLE = False
 
-from typing import List, Dict, Any, Optional, Tuple
 import logging
-from backend.app.models.fleet_v2 import CommercialVehicleSpec, VehicleClass, DeliveryStop, DepotLocation
+from typing import Any
+
+from backend.app.models.fleet_v2 import (
+    CommercialVehicleSpec,
+    DeliveryStop,
+    DepotLocation,
+    VehicleClass,
+)
 from backend.app.services.regulation_engine import RegionalRegulationEngine
 
 logger = logging.getLogger("routeopt.cvrptw")
@@ -22,11 +28,11 @@ logger = logging.getLogger("routeopt.cvrptw")
 class CVRPTWSolver:
     def __init__(
         self,
-        distance_matrix: List[List[float]],
-        duration_matrix: List[List[float]],
+        distance_matrix: list[list[float]],
+        duration_matrix: list[list[float]],
         depot: DepotLocation,
-        stops: List[DeliveryStop],
-        fleet: List[CommercialVehicleSpec],
+        stops: list[DeliveryStop],
+        fleet: list[CommercialVehicleSpec],
         enforce_guidelines: bool = True,
         departure_time_sec: int = 30600,  # Default: 08:30:00 (30600s since midnight)
         region: str = "MUMBAI_MMRDA"
@@ -51,7 +57,7 @@ class CVRPTWSolver:
         self.shift_end_sec = self.departure_time_sec + self.depot.operating_hours_sec
 
         # Normalized time windows for all stops in seconds since midnight
-        self.normalized_windows: List[Tuple[int, int]] = []
+        self.normalized_windows: list[tuple[int, int]] = []
         for s in self.stops:
             if s.time_window_start_sec == 0:
                 # Relative to shift departure (e.g. [0, 60] or default [0, 43200])
@@ -70,7 +76,7 @@ class CVRPTWSolver:
                 w_end = s.time_window_end_sec
             self.normalized_windows.append((int(w_start), int(w_end)))
 
-    def solve(self) -> Optional[Dict[str, Any]]:
+    def solve(self) -> dict[str, Any] | None:
         if not ORTOOLS_AVAILABLE:
             logger.info("OR-Tools not available in environment. Running greedy CVRPTW solver fallback.")
             return self._solve_greedy_fallback()
@@ -93,7 +99,7 @@ class CVRPTWSolver:
         current_time_sec: float,
         current_load_kg: float,
         penalty: float
-    ) -> Tuple[bool, float, float]:
+    ) -> tuple[bool, float, float]:
         """
         Shared feasibility evaluation used by greedy solver and validator.
         Returns (is_feasible, arrival_time_sec, depot_return_time_sec).
@@ -151,7 +157,7 @@ class CVRPTWSolver:
 
         return True, service_start, depot_return_time
 
-    def _solve_ortools(self) -> Optional[Dict[str, Any]]:
+    def _solve_ortools(self) -> dict[str, Any] | None:
         manager = pywrapcp.RoutingIndexManager(
             self.num_nodes,
             self.num_vehicles,
@@ -357,7 +363,7 @@ class CVRPTWSolver:
             "dropped_stops": dropped_stops
         }
 
-    def _solve_greedy_fallback(self) -> Dict[str, Any]:
+    def _solve_greedy_fallback(self) -> dict[str, Any]:
         """
         Greedy CVRPTW solver fallback with strict constraint checking.
         Shares the exact feasibility logic with OR-Tools.

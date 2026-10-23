@@ -18,7 +18,7 @@ if PROJECT_ROOT not in sys.path:
 
 from backend.app.models.fleet_v2 import CommercialVehicleSpec, VehicleClass, DeliveryStop, DepotLocation
 
-REGIONAL_CENTERS = {
+REGIONAL_CENTERS: dict[str, Any] = {
     "MUMBAI_MMRDA": {
         "depot": {"name": "Bhiwandi Central Hub", "lat": 19.2967, "lon": 73.0631},
         "lat_min": 18.92,
@@ -54,7 +54,7 @@ def build_fleet(fleet_mix: str, total_demand_kg: float) -> List[Dict[str, Any]]:
             fleet.append({
                 "vehicle_id": f"VAN-{i+1:02d}",
                 "name": f"Tata Ace Van {i+1}",
-                "vehicle_class": "DELIVERY_VAN",
+                "vehicle_class": "van",
                 "payload_capacity_kg": 1200.0,
                 "gross_vehicle_weight_tonnes": 2.2,
                 "height_meters": 1.9,
@@ -67,7 +67,7 @@ def build_fleet(fleet_mix: str, total_demand_kg: float) -> List[Dict[str, Any]]:
             fleet.append({
                 "vehicle_id": f"TRUCK-{i+1:02d}",
                 "name": f"Tata 407 Truck {i+1}",
-                "vehicle_class": "FREIGHT_TRUCK",
+                "vehicle_class": "truck",
                 "payload_capacity_kg": 4000.0,
                 "gross_vehicle_weight_tonnes": 7.5,
                 "height_meters": 3.1,
@@ -81,7 +81,7 @@ def build_fleet(fleet_mix: str, total_demand_kg: float) -> List[Dict[str, Any]]:
             fleet.append({
                 "vehicle_id": f"TRUCK-{i+1:02d}",
                 "name": f"Tata 407 Truck {i+1}",
-                "vehicle_class": "FREIGHT_TRUCK",
+                "vehicle_class": "truck",
                 "payload_capacity_kg": 4000.0,
                 "gross_vehicle_weight_tonnes": 7.5,
                 "height_meters": 3.1,
@@ -92,7 +92,7 @@ def build_fleet(fleet_mix: str, total_demand_kg: float) -> List[Dict[str, Any]]:
             fleet.append({
                 "vehicle_id": f"VAN-{i+1:02d}",
                 "name": f"Tata Ace Van {i+1}",
-                "vehicle_class": "DELIVERY_VAN",
+                "vehicle_class": "van",
                 "payload_capacity_kg": 1200.0,
                 "gross_vehicle_weight_tonnes": 2.2,
                 "height_meters": 1.9,
@@ -131,8 +131,14 @@ def generate_instance(
     shift_start_sec = 30600  # 08:30 AM
     shift_end_sec = shift_start_sec + 43200
 
-    u_lat_min, u_lat_max = reg_cfg["urban_core_lat"]
-    u_lon_min, u_lon_max = reg_cfg["urban_core_lon"]
+    u_lat_min: float = float(reg_cfg["urban_core_lat"][0])
+    u_lat_max: float = float(reg_cfg["urban_core_lat"][1])
+    u_lon_min: float = float(reg_cfg["urban_core_lon"][0])
+    u_lon_max: float = float(reg_cfg["urban_core_lon"][1])
+    lat_min: float = float(reg_cfg["lat_min"])
+    lat_max: float = float(reg_cfg["lat_max"])
+    lon_min: float = float(reg_cfg["lon_min"])
+    lon_max: float = float(reg_cfg["lon_max"])
 
     for idx in range(1, stop_count + 1):
         is_restricted = rng.random() < restriction_density
@@ -140,8 +146,8 @@ def generate_instance(
             lat = rng.uniform(u_lat_min, u_lat_max)
             lon = rng.uniform(u_lon_min, u_lon_max)
         else:
-            lat = rng.uniform(reg_cfg["lat_min"], reg_cfg["lat_max"])
-            lon = rng.uniform(reg_cfg["lon_min"], reg_cfg["lon_max"])
+            lat = rng.uniform(lat_min, lat_max)
+            lon = rng.uniform(lon_min, lon_max)
 
         demand = round(rng.uniform(80.0, 450.0), 1)
         total_demand += demand
