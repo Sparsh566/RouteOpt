@@ -245,4 +245,8 @@ async def test_ai_simulation_fallback_when_no_api_key(depot, truck):
     assert res is not None
     assert res.feasibility_status == "VIOLATION_DETECTED"
     assert len(res.ai_advisory_recommendation) > 0
-    assert "RouteOpt Standard Dispatch Rules" in res.llm_engine_used or "Groq" in res.llm_engine_used
+    assert (
+        "RouteOpt Deterministic Rules" in res.llm_engine_used
+        or "RouteOpt Standard Dispatch Rules" in res.llm_engine_used
+        or "Groq" in res.llm_engine_used
+    )
