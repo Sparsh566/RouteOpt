@@ -139,6 +139,7 @@ def run_single_simulation(
             "vehicles_used": 0,
             "missed_deadlines": 0,
             "unserved_stops": len(stops),
+            "time_to_first_solution_ms": round(runtime_ms, 2),
             "runtime_ms": round(runtime_ms, 2),
             "fines_inr": 0.0
         }
@@ -183,6 +184,9 @@ def run_single_simulation(
     total_cost += dropped_count * 2500.0
 
     missed_tw = sum(1 for e in report["errors"] if e.get("error_type") == "TIME_WINDOW_MISSED")
+    first_sol_time = sol.get("time_to_first_solution_ms")
+    if first_sol_time is None:
+        first_sol_time = runtime_ms
 
     return {
         "policy": policy,
@@ -191,6 +195,7 @@ def run_single_simulation(
         "vehicles_used": vehicles_used,
         "missed_deadlines": missed_tw,
         "unserved_stops": dropped_count,
+        "time_to_first_solution_ms": round(first_sol_time, 2),
         "runtime_ms": round(runtime_ms, 2),
         "fines_inr": fines_incurred
     }
@@ -226,6 +231,7 @@ def run_benchmark_suite(
                 veh_mean = statistics.mean([r["vehicles_used"] for r in records])
                 unserved_mean = statistics.mean([r["unserved_stops"] for r in records])
                 deadlines_mean = statistics.mean([r["missed_deadlines"] for r in records])
+                first_sol_mean = statistics.mean([r["time_to_first_solution_ms"] for r in records])
                 runtime_mean = statistics.mean([r["runtime_ms"] for r in records])
 
                 summary_data.append({
@@ -239,6 +245,7 @@ def run_benchmark_suite(
                     "vehicles_mean": round(veh_mean, 2),
                     "unserved_stops_mean": round(unserved_mean, 2),
                     "missed_deadlines_mean": round(deadlines_mean, 2),
+                    "time_to_first_solution_ms": round(first_sol_mean, 2),
                     "runtime_mean_ms": round(runtime_mean, 2)
                 })
 
@@ -256,6 +263,7 @@ def run_benchmark_suite(
             g_veh_mean = statistics.mean([r["vehicles_used"] for r in greedy_records])
             g_unserved_mean = statistics.mean([r["unserved_stops"] for r in greedy_records])
             g_deadlines_mean = statistics.mean([r["missed_deadlines"] for r in greedy_records])
+            g_first_sol_mean = statistics.mean([r["time_to_first_solution_ms"] for r in greedy_records])
             g_runtime_mean = statistics.mean([r["runtime_ms"] for r in greedy_records])
 
             summary_data.append({
@@ -269,6 +277,7 @@ def run_benchmark_suite(
                 "vehicles_mean": round(g_veh_mean, 2),
                 "unserved_stops_mean": round(g_unserved_mean, 2),
                 "missed_deadlines_mean": round(g_deadlines_mean, 2),
+                "time_to_first_solution_ms": round(g_first_sol_mean, 2),
                 "runtime_mean_ms": round(g_runtime_mean, 2)
             })
 
@@ -277,7 +286,8 @@ def run_benchmark_suite(
     fieldnames = [
         "region", "stops", "solver", "policy",
         "cost_mean_inr", "cost_std_inr", "distance_mean_km",
-        "vehicles_mean", "unserved_stops_mean", "missed_deadlines_mean", "runtime_mean_ms"
+        "vehicles_mean", "unserved_stops_mean", "missed_deadlines_mean",
+        "time_to_first_solution_ms", "runtime_mean_ms"
     ]
     with open(csv_path, "w", newline="", encoding="utf-8") as f:
         writer = csv.DictWriter(f, fieldnames=fieldnames)
@@ -322,16 +332,16 @@ def _generate_plots(data: List[Dict[str, Any]], output_dir: str):
     if len(solver_data) >= 2:
         solvers = [d["solver"] for d in solver_data]
         costs = [d["cost_mean_inr"] for d in solver_data]
-        runtimes = [d["runtime_mean_ms"] for d in solver_data]
+        runtimes = [d.get("time_to_first_solution_ms", d["runtime_mean_ms"]) for d in solver_data]
 
         fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(10, 4))
         ax1.bar(solvers, costs, color=["#10b981", "#f59e0b"], width=0.4)
-        ax1.set_title("Cost Comparison (INR)", fontsize=11)
+        ax1.set_title("Final Cost Comparison (INR)", fontsize=11)
         ax1.set_ylabel("Mean Cost (INR)")
 
         ax2.bar(solvers, runtimes, color=["#6366f1", "#8b5cf6"], width=0.4)
-        ax2.set_title("Runtime Comparison (ms)", fontsize=11)
-        ax2.set_ylabel("Solver Runtime (ms)")
+        ax2.set_title("Time to First Solution (ms)", fontsize=11)
+        ax2.set_ylabel("First Solution Time (ms)")
 
         plot2_path = os.path.join(output_dir, "solver_comparison.png")
         plt.tight_layout()

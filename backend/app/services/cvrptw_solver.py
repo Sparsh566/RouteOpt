@@ -13,6 +13,7 @@ except (ImportError, Exception):
     ORTOOLS_AVAILABLE = False
 
 import logging
+import time
 from typing import Any
 
 from backend.app.models.fleet_v2 import (
@@ -24,6 +25,24 @@ from backend.app.models.fleet_v2 import (
 from backend.app.services.regulation_engine import RegionalRegulationEngine
 
 logger = logging.getLogger("routeopt.cvrptw")
+
+if ORTOOLS_AVAILABLE and pywrapcp is not None:
+    class FirstSolutionMonitor(pywrapcp.SearchMonitor):  # type: ignore[name-defined]
+        """Monitors OR-Tools search to capture exact time-to-first-solution."""
+        def __init__(self, solver: Any) -> None:
+            super().__init__(solver)
+            self.t0: float | None = None
+            self.first_solution_time_ms: float | None = None
+
+        def EnterSearch(self) -> None:
+            self.t0 = time.perf_counter()
+
+        def AtSolution(self) -> bool:
+            if self.first_solution_time_ms is None and self.t0 is not None:
+                self.first_solution_time_ms = (time.perf_counter() - self.t0) * 1000.0
+            return True
+else:
+    FirstSolutionMonitor = None  # type: ignore[assignment,misc]
 
 class CVRPTWSolver:
     def __init__(
@@ -299,9 +318,16 @@ class CVRPTWSolver:
         )
         search_parameters.time_limit.seconds = 3
 
+        monitor = None
+        if FirstSolutionMonitor is not None:
+            monitor = FirstSolutionMonitor(routing.solver())
+            routing.AddSearchMonitor(monitor)
+
         solution = routing.SolveWithParameters(search_parameters)
         if not solution:
             return None
+
+        first_solution_time_ms = monitor.first_solution_time_ms if monitor else None
 
         # 8. Extract Solution
         routes = []
@@ -360,7 +386,8 @@ class CVRPTWSolver:
 
         return {
             "routes": routes,
-            "dropped_stops": dropped_stops
+            "dropped_stops": dropped_stops,
+            "time_to_first_solution_ms": round(first_solution_time_ms, 2) if first_solution_time_ms is not None else None,
         }
 
     def _solve_greedy_fallback(self) -> dict[str, Any]:
@@ -368,6 +395,7 @@ class CVRPTWSolver:
         Greedy CVRPTW solver fallback with strict constraint checking.
         Shares the exact feasibility logic with OR-Tools.
         """
+        t_greedy_start = time.perf_counter()
         unassigned = list(range(1, self.num_nodes))
         routes = []
         dropped_stops = []
@@ -475,7 +503,9 @@ class CVRPTWSolver:
         for remaining_node in unassigned:
             dropped_stops.append(self.stops[remaining_node - 1].stop_id)
 
+        greedy_time_ms = (time.perf_counter() - t_greedy_start) * 1000.0
         return {
             "routes": routes,
-            "dropped_stops": dropped_stops
+            "dropped_stops": dropped_stops,
+            "time_to_first_solution_ms": round(greedy_time_ms, 2),
         }
