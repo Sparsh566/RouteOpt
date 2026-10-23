@@ -31,16 +31,18 @@ logger = logging.getLogger("routeopt.simulation")
 class AISimulationEngine:
     SYSTEM_PROMPT = """
 You are a senior fleet dispatch supervisor for Indian commercial transport (Tata Ace delivery vans and Tata 407 freight trucks).
-You evaluate delays, traffic rules, and custom road problems in plain, practical terms for drivers and dispatchers.
+You explain deterministically computed dispatch metrics, delays, and municipal traffic violations to drivers and dispatchers.
 
-CRITICAL FORMATTING RULES:
-1. Do NOT use any emojis.
-2. Do NOT use em dashes. Use simple hyphens, commas, or colons instead.
-3. Write in direct, simple, professional language.
-4. Keep the summary to 3 short sentences:
-   - What happened (the delay or rule breach).
-   - Cost and time consequence.
-   - What the driver or supervisor must do right now.
+STRICT NUMERICAL AND DECISION BOUNDARIES:
+1. Grounding: You must ONLY reference the exact numbers, costs, time variances, and feasibility status provided in the context. NEVER invent new cost figures, percentages, fines, or override the solver's feasibility decision.
+2. Directness: Explain why the deterministic solver made this decision based strictly on the violations and metrics provided.
+3. Formatting:
+   - Do NOT use any emojis.
+   - Do NOT use em dashes. Use simple hyphens, commas, or colons instead.
+   - Keep the summary to exactly 3 short sentences:
+     * What happened (the delay or rule breach).
+     * The computed cost and time consequence (using only the provided metrics).
+     * The recommended operational action.
 """
 
     @staticmethod
@@ -387,7 +389,7 @@ CRITICAL FORMATTING RULES:
         cost_diff = sim_cost - baseline_cost
         dur_diff = sim_duration - baseline_duration
 
-        ai_recommendation, engine_name = await cls._query_llm(
+        ai_recommendation, engine_name, is_ai = await cls._query_llm(
             scenario_title=title,
             status=status,
             cost_diff=cost_diff,
@@ -417,6 +419,8 @@ CRITICAL FORMATTING RULES:
             fines_avoided_inr=fines_avoided_inr,
             violations=violations,
             ai_advisory_recommendation=ai_recommendation,
+            ai_advisory_explanation=ai_recommendation,
+            is_ai_generated=is_ai,
             suggested_action=action,
             llm_engine_used=engine_name,
             simulation_duration_ms=round(elapsed_ms, 2)
@@ -433,7 +437,7 @@ CRITICAL FORMATTING RULES:
         violations: List[RuleViolationDetail],
         suggested_action: str,
         custom_problem: Optional[str] = None
-    ) -> tuple[str, str]:
+    ) -> tuple[str, str, bool]:
         if custom_problem and custom_problem.strip():
             user_prompt = (
                 f"Custom Driver Problem: {custom_problem}\n"
@@ -442,7 +446,7 @@ CRITICAL FORMATTING RULES:
                 f"Time Variance: {dur_diff:+.2f} hours\n"
                 f"Violations: {[v.rule_breached for v in violations]}\n"
                 f"Recommended Operational Action: {suggested_action}\n"
-                f"Write the 3-sentence operational guidance for the driver and supervisor."
+                f"Write the 3-sentence operational guidance referencing only the above computed values."
             )
         else:
             user_prompt = (
@@ -452,14 +456,14 @@ CRITICAL FORMATTING RULES:
                 f"Time Difference: {dur_diff:+.2f} hours\n"
                 f"Violations: {[v.rule_breached for v in violations]}\n"
                 f"Recommended Action: {suggested_action}\n"
-                f"Write the 3-sentence operational driver advice."
+                f"Write the 3-sentence operational driver advice referencing only the above computed values."
             )
 
         groq_key = settings.GROQ_API_KEY
         if groq_key:
-            for model_candidate in ["openai/gpt-oss-120b", "openai/gpt-oss-20b"]:
+            for model_candidate in ["llama-3.3-70b-versatile", "llama-3.1-8b-instant"]:
                 try:
-                    async with httpx.AsyncClient(timeout=6.0) as client:
+                    async with httpx.AsyncClient(timeout=4.0) as client:
                         res = await client.post(
                             "https://api.groq.com/openai/v1/chat/completions",
                             headers={"Authorization": f"Bearer {groq_key}"},
@@ -474,25 +478,38 @@ CRITICAL FORMATTING RULES:
                         )
                         if res.status_code == 200:
                             text = res.json()["choices"][0]["message"]["content"].strip()
-                            return text, f"Groq Llama ({model_candidate.split('/')[-1]})"
+                            return text, f"Groq Llama ({model_candidate})", True
                 except Exception as e:
                     logger.warning(f"Groq API call failed on {model_candidate}: {e}")
 
-        # Fallback text
+        # Deterministic rule fallback cleanly handles missing GROQ_API_KEY, API rate limits, or timeouts
         if status == "VIOLATION_DETECTED":
+            fine_str = f"Rs {violations[0].penalty_fine_inr:,.0f}" if violations else "a substantial"
             advice = (
                 f"The vehicle faces a municipal peak-hour restriction or delay. "
-                f"Continuing risks an immediate Rs 20,000 police penalty and over 3 hours of delay. "
-                f"Driver should halt at an outer transport bay or shift packages to Tata Ace delivery vans."
+                f"Continuing risks an immediate {fine_str} police penalty and {dur_diff:+.1f} hours of delay. "
+                f"{suggested_action}"
+            )
+        elif status == "INFEASIBLE":
+            advice = (
+                f"Dispatch requirements cannot be satisfied under operational constraints. "
+                f"Routing failed with unserved demand under time-window or vehicle limits. "
+                f"{suggested_action}"
+            )
+        elif status == "REROUTED_SUCCESSFULLY":
+            advice = (
+                f"The route has been successfully recalculated around active corridor disruptions. "
+                f"Expected cost change is Rs {cost_diff:+.0f} with a time shift of {dur_diff:+.1f} hours. "
+                f"{suggested_action}"
             )
         else:
             advice = (
                 f"The situation has been evaluated against regional road rules. "
                 f"Expected cost change is Rs {cost_diff:+.0f} with a time shift of {dur_diff:+.1f} hours. "
-                f"Proceed according to the suggested action."
+                f"{suggested_action}"
             )
 
-        return advice, "RouteOpt Standard Dispatch Rules"
+        return advice, "RouteOpt Deterministic Rules (Fallback)", False
 
     @staticmethod
     def _clean_text(text: str) -> str:

@@ -38,7 +38,10 @@ class SimulationScenarioResponse(BaseModel):
     fines_avoided_inr: float = 0.0
     violations: List[RuleViolationDetail]
     ai_advisory_recommendation: str
+    ai_advisory_explanation: str
+    is_ai_generated: bool = False
     suggested_action: str
     llm_engine_used: str
     simulation_duration_ms: float
+
 
