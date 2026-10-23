@@ -46,7 +46,19 @@
         "violation_fine_inr": 20000.0,
         "legal_basis": "Motor Vehicles Act Demo Rating",
         "status": "demo"
-      }
+      },
+      "restricted_zones": [
+        {
+          "zone_id": "MUMBAI_SOUTH_CENTRAL_CORE",
+          "name": "South & Central Mumbai Urban Core (Colaba to Bandra/Kurla)",
+          "polygon": [
+            [18.90, 72.80],
+            [19.10, 72.80],
+            [19.10, 72.89],
+            [18.90, 72.89]
+          ]
+        }
+      ]
     },
     "PUNE_PMC": {
       "region_id": "PUNE_PMC",
@@ -91,7 +103,19 @@
         "violation_fine_inr": 15000.0,
         "legal_basis": "Motor Vehicles Act Demo Rating",
         "status": "demo"
-      }
+      },
+      "restricted_zones": [
+        {
+          "zone_id": "PUNE_CENTRAL_CORE",
+          "name": "Pune Swargate & Shivajinagar Urban Core",
+          "polygon": [
+            [18.50, 73.82],
+            [18.55, 73.82],
+            [18.55, 73.88],
+            [18.50, 73.88]
+          ]
+        }
+      ]
     },
     "NAGPUR_NMC": {
       "region_id": "NAGPUR_NMC",
@@ -136,7 +160,19 @@
         "violation_fine_inr": 10000.0,
         "legal_basis": "Motor Vehicles Act Demo Rating",
         "status": "demo"
-      }
+      },
+      "restricted_zones": [
+        {
+          "zone_id": "NAGPUR_CENTRAL_CORE",
+          "name": "Nagpur Sitabuldi & Central Commercial Core",
+          "polygon": [
+            [21.13, 79.05],
+            [21.17, 79.05],
+            [21.17, 79.12],
+            [21.13, 79.12]
+          ]
+        }
+      ]
     }
   }
 }

@@ -58,6 +58,11 @@ class RouteValidator:
         self.enforce_guidelines = enforce_guidelines
         self.reg_engine = RegionalRegulationEngine(region)
 
+        # Auto-derive restricted urban core status from stop coordinates if not explicitly set
+        for s in self.stops:
+            if not s.is_in_restricted_urban_core:
+                s.is_in_restricted_urban_core = self.reg_engine.is_coordinate_in_restricted_zone(s.lat, s.lon)
+
         self.stop_by_id = {s.stop_id: s for s in stops}
         self.stop_by_node = {i + 1: s for i, s in enumerate(stops)}
         self.vehicle_by_id = {v.vehicle_id: v for v in fleet}
