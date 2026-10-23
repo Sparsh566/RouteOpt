@@ -1,7 +1,6 @@
 """
 Regional Government Road Guidelines Engine
-Loads structured municipal regulations from backend/app/data/regulations.json.
-Maintains verified citations for Mumbai MMRDA, with other jurisdictions marked demo/assumption.
+Loads structured municipal regulations from backend/app/data/regulations.json (all regions marked demo/assumption).
 """
 
 import json

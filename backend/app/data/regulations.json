@@ -7,10 +7,9 @@
       "region_id": "MUMBAI_MMRDA",
       "name": "Greater Mumbai & MMRDA Metropolitan Area",
       "jurisdiction": "Mumbai Traffic Police & MMRDA",
-      "status": "verified",
+      "status": "demo",
       "citations": [
-        "Government of Maharashtra Transport & Traffic Branch Notification under Section 115 of Motor Vehicles Act, 1988",
-        "Brihanmumbai Municipal Corporation (BMC) / MMRDA Urban Core Flyover Height Clearance Guidelines"
+        "Mumbai Traffic Branch advisory guidelines (Demo Model for municipal HGV restrictions)"
       ],
       "time_restrictions": [
         {
@@ -21,8 +20,8 @@
           "end_time_str": "11:30 AM",
           "applies_to": ["truck"],
           "exempt": ["van"],
-          "source_reference": "Mumbai Traffic Police Order No. 42/2021 (Peak Hour City Core HGV Ban)",
-          "status": "verified"
+          "source_reference": "Mumbai Traffic Advisory (Demo Model)",
+          "status": "demo"
         },
         {
           "name": "Evening Peak Severe Heavy Goods Vehicle Restriction",
@@ -32,21 +31,21 @@
           "end_time_str": "09:30 PM",
           "applies_to": ["truck"],
           "exempt": ["van"],
-          "source_reference": "Mumbai Traffic Police Order No. 42/2021 (Peak Hour City Core HGV Ban)",
-          "status": "verified"
+          "source_reference": "Mumbai Traffic Advisory (Demo Model)",
+          "status": "demo"
         }
       ],
       "infrastructure_limits": {
         "flyover_height_limit_m": 2.5,
         "bridge_gvw_limit_tonnes": 7.5,
-        "flyover_source": "MMRDA Overhead Gantry Standard for Urban Corridor Flyovers",
-        "bridge_source": "PWD / BMC Heritage & Suburban Bridge Load Capacities",
-        "status": "verified"
+        "flyover_source": "Demo Model Assumption (2.5m flyover clearance)",
+        "bridge_source": "Demo Model Assumption (7.5t suburban bridge limit)",
+        "status": "demo"
       },
       "penalties": {
         "violation_fine_inr": 20000.0,
-        "legal_basis": "Motor Vehicles Act, 1988 - Section 115 r/w Section 194",
-        "status": "verified"
+        "legal_basis": "Motor Vehicles Act Demo Rating",
+        "status": "demo"
       }
     },
     "PUNE_PMC": {
