@@ -1,66 +1,104 @@
 # RouteOpt: Commercial Fleet Route Optimization and AI Dispatch Simulator
 
-RouteOpt is an intelligent transport management system designed for Indian urban freight operations. It optimizes multi-vehicle commercial logistics fleets (Delivery Vans like Tata Ace and Freight Trucks like Tata 407) under municipal road guidelines, peak-hour entry bans, low-clearance flyover restrictions, and delivery time windows. It includes an interactive Leaflet dispatch interface with live vehicle movement animation and an AI-driven "What-If" scenario simulator powered by Groq.
+RouteOpt is an intelligent transport management and route optimization system designed for commercial freight operations in Indian metropolitan corridors. It optimizes heterogeneous fleets—small delivery vans (e.g., Tata Ace / Ashok Leyland Dost) and freight trucks (e.g., Tata 407 / BharatBenz)—under municipal traffic regulations, peak-hour entry bans, low-clearance flyover restrictions, and customer delivery time windows.
+
+The system combines Google OR-Tools CVRPTW mathematical optimization, an independent post-solution route validator, deterministic simulation fallbacks, and an interactive Leaflet dispatch interface with live vehicle tracking and a Fleet Manager dashboard.
 
 ---
 
-## Key Features
+## Formal Mathematical Model
 
-1. **Multi-Vehicle CVRPTW Solver:**
-   - Solves Capacitated Vehicle Routing Problem with Time Windows using Google OR-Tools.
-   - Differentiates vehicle classes:
-     - **Delivery Van (LCV - Tata Ace / Dost):** 1,200 kg payload, 1.9 m height clearance, exempt from urban peak-hour bans.
-     - **Freight Truck (MCV/HCV - Tata 407 / Eicher):** 4,500 kg payload, 3.1 m height, subject to peak bans and flyover limits.
-   - Embedded greedy heuristic fallback for resilient deployment on serverless platforms.
+RouteOpt models urban commercial logistics as a **Capacitated Vehicle Routing Problem with Time Windows and Regional Regulatory Constraints (CVRPTW-RC)**.
 
-2. **Regional Road Guidelines Engine:**
-   - Models municipal traffic notifications (such as Mumbai MMRDA and Pune PMC):
-     - **Morning Peak No-Entry Ban:** 08:00 AM to 11:30 AM for heavy goods vehicles.
-     - **Evening Peak No-Entry Ban:** 05:00 PM to 09:30 PM for heavy goods vehicles.
-     - **Flyover Height Barriers:** 2.5-meter clearance gantries redirecting trucks to surface roads.
-     - **Bridge GVW Limits:** 7.5-tonne gross vehicle weight limits on older arterial spans.
-     - Penalty calculation (Rs 20,000 fine risk under Section 115 and 116 of the Motor Vehicles Act).
+### Sets and Parameters
 
-3. **AI What-If Disruption Simulator:**
-   - Evaluates unexpected road conditions (toll delays, weather disruptions, emergency drop additions, and vehicle breakdowns).
-   - Powered by Groq LLM (gpt-oss-120b) to provide 3-sentence operational guidance for dispatchers and drivers.
-   - Supports both curated preset scenarios and custom free-text driver problem descriptions.
+- $\mathcal{V} = \{0, 1, \dots, n\}$: Nodes, where $0$ is the central depot and $\mathcal{C} = \{1, \dots, n\}$ are customer delivery stops.
+- $\mathcal{K}$: Set of available commercial vehicles in the fleet.
+- $q_i$: Demand payload at stop $i \in \mathcal{C}$ (kg).
+- $[e_i, l_i]$: Delivery time window for stop $i$ (seconds from midnight).
+- $s_i$: Service duration / unloading dwell time at stop $i$ (seconds).
+- $Q_k$: Payload capacity of vehicle $k \in \mathcal{K}$ (kg).
+- $F_k$: Fixed vehicle dispatch cost (₹).
+- $c_k$: Variable operational cost per kilometer (₹/km).
+- $d_{ij}$: Distance from node $i$ to node $j$ (km).
+- $\tau_{ij}$: Travel duration from node $i$ to node $j$ under active traffic congestion (seconds).
+- $H$: Maximum permissible shift operating horizon (seconds).
+- $P_i$: Penalty cost for dropping unserved customer stop $i$ (₹2,500).
+- $\mathcal{W}_{\text{ban}} = \bigcup [B_m^{\text{start}}, B_m^{\text{end}}]$: Municipal peak-hour no-entry windows for heavy freight vehicles.
+- $\mathcal{C}_{\text{core}} \subseteq \mathcal{C}$: Delivery stops located within municipal restricted urban cores.
+- $\mathcal{K}_{\text{truck}} \subseteq \mathcal{K}$: Heavy freight vehicles subject to peak no-entry and height barriers.
 
-4. **Live Driver Route Movement Simulation:**
-   - Interactive Leaflet map visualizing vehicle transit along road polylines.
-   - Real-time vehicle marker animations with speed toggles (1x, 2x, 4x).
-   - Live status indicator displaying current route legs, drop points, and cargo weights.
+### Decision Variables
+
+- $x_{ijk} \in \{0, 1\}$: $1$ if vehicle $k$ traverses arc $(i, j)$, $0$ otherwise.
+- $u_k \in \{0, 1\}$: $1$ if vehicle $k$ is utilized in the dispatch plan, $0$ otherwise.
+- $t_{ik} \ge 0$: Arrival time of vehicle $k$ at node $i$.
+- $y_i \in \{0, 1\}$: $1$ if stop $i$ is dropped (unserved), $0$ if fulfilled.
+
+### Objective Function
+
+$$\min \quad \sum_{k \in \mathcal{K}} F_k \cdot u_k + \sum_{k \in \mathcal{K}} c_k \sum_{i \in \mathcal{V}} \sum_{j \in \mathcal{V}} d_{ij} x_{ijk} + \sum_{i \in \mathcal{C}} P_i \cdot y_i$$
+
+### Constraints
+
+1. **Stop Fulfillment or Explicit Drop:**
+   $$\sum_{k \in \mathcal{K}} \sum_{j \in \mathcal{V}, j \ne i} x_{ijk} + y_i = 1, \quad \forall i \in \mathcal{C}$$
+
+2. **Flow Conservation:**
+   $$\sum_{j \in \mathcal{V}, j \ne p} x_{jpk} - \sum_{j \in \mathcal{V}, j \ne p} x_{pjk} = 0, \quad \forall p \in \mathcal{C}, \forall k \in \mathcal{K}$$
+   $$\sum_{j \in \mathcal{C}} x_{0jk} = u_k \le 1, \quad \sum_{i \in \mathcal{C}} x_{i0k} = u_k \le 1, \quad \forall k \in \mathcal{K}$$
+
+3. **Vehicle Payload Capacity:**
+   $$\sum_{i \in \mathcal{C}} q_i \sum_{j \in \mathcal{V}} x_{ijk} \le Q_k \cdot u_k, \quad \forall k \in \mathcal{K}$$
+
+4. **Time Windows and Arrival Propagation:**
+   $$t_{ik} + s_i + \tau_{ij} - M(1 - x_{ijk}) \le t_{jk}, \quad \forall i \in \mathcal{V}, j \in \mathcal{C}, \forall k \in \mathcal{K}$$
+   $$e_i \le t_{ik} \le l_i, \quad \forall i \in \mathcal{C}, \forall k \in \mathcal{K}$$
+
+5. **Depot Operating Shift Horizon:**
+   $$t_{0k}^{\text{return}} - t_{0k}^{\text{depart}} \le H, \quad \forall k \in \mathcal{K}$$
+
+6. **Municipal Peak-Hour Truck Restriction:**
+   $$t_{ik} \notin \mathcal{W}_{\text{ban}}, \quad \forall i \in \mathcal{C}_{\text{core}}, \forall k \in \mathcal{K}_{\text{truck}}$$
+
+7. **Overhead Height Gantry and Bridge GVW Clearances:**
+   Arcs spanning restricted flyovers ($h_k > H_{\text{flyover}}$) or weight-restricted bridges ($\text{GVW}_k > W_{\text{bridge}}$) are assigned infinite impedance in the distance matrix.
 
 ---
 
 ## System Architecture
 
 ```
-                  +-----------------------------------+
-                  |         Dispatch Web UI           |
-                  |   (Leaflet Map + Logistics Theme) |
-                  +-----------------+-----------------+
-                                    |
-                                    v
-                     +--------------+--------------+
-                     |       FastAPI Backend       |
-                     |  (Local or Vercel Serverless)|
-                     +--------------+--------------+
-                                    |
-         +--------------------------+--------------------------+
-         |                          |                          |
-         v                          v                          v
-+-----------------+        +-----------------+        +-----------------+
-|  CVRPTW Engine  |        | Regulation Base |        |  AI Simulation  |
-| (OR-Tools /     |        | (MMRDA & Police |        | (Groq Fast LLM  |
-|  Greedy Solver) |        |  Traffic Rules) |        |  gpt-oss-120b)  |
-+-----------------+        +-----------------+        +-----------------+
-         |
-         v
-+-----------------+
-|  OSRM / Haversine|
-| Distance Matrix |
-+-----------------+
+                       +---------------------------------------+
+                       |           Dispatch Web HUD            |
+                       | (Leaflet Map, Manager Dashboard, HUD) |
+                       +-------------------+-------------------+
+                                           |
+                                  HTTP REST / JSON
+                                           |
+                                           v
+                       +---------------------------------------+
+                       |           FastAPI Application         |
+                       |       (/api/optimize, /api/simulate)  |
+                       +-------------------+-------------------+
+                                           |
+         +---------------------------------+---------------------------------+
+         |                                 |                                 |
+         v                                 v                                 v
++------------------+             +-------------------+             +-------------------+
+|  CVRPTW Solver   |             |  Regulation Base  |             |  AI Simulator     |
+| (Google OR-Tools |             |  (MMRDA, PMC,     |             | (Strict Grounding |
+| / Greedy Backup) |             |   NMC Rules DB)   |             | & Rule Fallback)  |
++--------+---------+             +---------+---------+             +-------------------+
+         |                                 |
+         +----------------+----------------+
+                          |
+                          v
+               +----------------------+
+               |    RouteValidator    |
+               | (Independent Audit of|
+               | 9 Constraint Classes)|
+               +----------------------+
 ```
 
 ---
@@ -69,178 +107,124 @@ RouteOpt is an intelligent transport management system designed for Indian urban
 
 ```
 RouteOpt/
-├── api/
-│   ├── index.py                  # Vercel serverless ASGI entrypoint
-│   └── requirements.txt          # API dependencies for Vercel
 ├── backend/
 │   ├── app/
 │   │   ├── controllers/
-│   │   │   ├── optimize.py       # Route optimization controller
-│   │   │   └── simulate.py       # AI simulation and guidelines controller
+│   │   │   ├── optimize.py          # /api/optimize endpoint handler
+│   │   │   └── simulate.py          # /api/simulate disruption sandbox
+│   │   ├── data/
+│   │   │   └── regulations.json     # Regional regulations database
 │   │   ├── models/
-│   │   │   ├── fleet_v2.py       # Pydantic schemas for fleet and CVRPTW
-│   │   │   └── simulation_v3.py  # Simulation request and response schemas
+│   │   │   ├── fleet_v2.py          # Pydantic models for fleet and CVRPTW
+│   │   │   └── simulation_v3.py     # Disruption request/response schemas
 │   │   ├── services/
-│   │   │   ├── ai_simulation_engine.py # Groq LLM advisory service
-│   │   │   ├── cvrptw_solver.py  # OR-Tools and greedy CVRPTW solver
-│   │   │   ├── osrm_service.py   # Distance and duration matrix client
-│   │   │   ├── regulation_engine.py # Road rules and fine calculation
-│   │   │   └── traffic_engine.py # Congestion factor calculation
-│   │   ├── config.py             # Environment configuration
-│   │   └── main.py               # FastAPI application setup
-│   ├── tests/
-│   │   └── test_v2_v3.py         # Pytest verification suite
-│   └── requirements.txt          # Backend dependencies
+│   │   │   ├── ai_simulation_engine.py # Disruption analysis engine
+│   │   │   ├── cvrptw_solver.py     # OR-Tools & greedy fallback solver
+│   │   │   ├── osrm_service.py      # Live OSRM / Haversine winding service
+│   │   │   ├── regulation_engine.py # RegionalRegulationEngine
+│   │   │   ├── traffic_engine.py    # Congestion multiplier service
+│   │   │   └── validator.py         # Independent RouteValidator
+│   │   ├── config.py                # App configuration & settings
+│   │   └── main.py                  # FastAPI app entrypoint
+│   └── tests/                       # Automated pytest verification suite
+├── benchmarks/
+│   ├── data/solomon/                # Standard Solomon benchmark files (.txt)
+│   ├── instances/                   # Synthetic benchmark instances (.json)
+│   ├── generator.py                 # Reproducible instance generator
+│   ├── run.py                       # Unified CLI benchmark harness
+│   └── solomon_validator.py         # Solomon loader & optimality gap validator
 ├── frontend/
-│   ├── app.js                    # Dispatch client, map logic, and animations
-│   ├── index.html                # Driver/dispatcher web interface
-│   └── style.css                 # Solid dark-slate logistics styling
-├── plan.md                       # Strategic system architecture blueprint
-├── implementation.md             # Technical implementation reference
-├── requirements.txt              # Root dependencies for cloud deployment
-├── run.py                        # Local development runner
-└── vercel.json                   # Vercel cloud deployment routing rules
+│   ├── app.js                       # Map rendering, UI controls, HUD
+│   ├── index.html                   # Single-page dispatch application
+│   └── style.css                    # Dark logistics theme CSS
+├── results/                         # Generated benchmark CSVs and plots
+├── .github/workflows/test.yml       # CI workflow (ruff, mypy, pytest)
+├── pyproject.toml                   # Ruff and MyPy tooling configuration
+├── requirements.txt                 # Production dependencies
+└── requirements-dev.txt             # Development & testing dependencies
 ```
 
 ---
 
-## API Reference
+## Step-by-Step Setup Instructions
 
-### 1. Health Check
-* **GET** `/health`
-* **Response:**
-  ```json
-  {
-    "status": "OK",
-    "app": "RouteOpt Commercial Fleet & AI Simulation Engine",
-    "ai_enabled": true,
-    "osrm_endpoint": "http://localhost:5000"
-  }
-  ```
+### Prerequisites
+- Python 3.11 or higher
+- Git
 
-### 2. Fleet Route Optimization
-* **POST** `/api/optimize`
-* **Description:** Generates optimal multi-vehicle routes respecting capacities, time windows, and municipal entry bans.
-* **Payload Example:**
-  ```json
-  {
-    "depot": {
-      "depot_id": "DEPOT-BHIWANDI",
-      "name": "Bhiwandi Central Freight Hub",
-      "lat": 19.2967,
-      "lon": 73.0631,
-      "operating_hours_sec": 43200
-    },
-    "stops": [
-      {
-        "stop_id": "STOP-01",
-        "name": "Mulund Commercial Checkpost",
-        "lat": 19.1726,
-        "lon": 72.9565,
-        "demand_kg": 450,
-        "time_window_start_sec": 0,
-        "time_window_end_sec": 36000,
-        "service_duration_sec": 600,
-        "is_in_restricted_urban_core": true
-      }
-    ],
-    "fleet": [
-      {
-        "vehicle_id": "VAN-01",
-        "name": "Tata Ace Van 1",
-        "vehicle_class": "van",
-        "gross_vehicle_weight_tonnes": 2.2,
-        "height_meters": 1.9,
-        "payload_capacity_kg": 1200.0,
-        "fixed_dispatch_cost": 250.0,
-        "running_cost_per_km": 12.0,
-        "color_hex": "#0284c7"
-      }
-    ],
-    "departure_time_iso": "2026-10-09T08:30:00+05:30",
-    "region": "MUMBAI_MMRDA",
-    "apply_traffic_congestion": true,
-    "enforce_government_guidelines": true
-  }
-  ```
-
-### 3. Scenario Simulation
-* **POST** `/api/simulate`
-* **Description:** Runs an operational disruption simulation using preset scenarios or user-entered custom situations.
-* **Payload Example (Custom Problem):**
-  ```json
-  {
-    "scenario_type": "CUSTOM_SITUATION",
-    "custom_situation_text": "Truck is delayed at Dadar market for 45 mins due to rain. Will it miss the 5:00 PM entry ban?",
-    "depot": { ... },
-    "fleet": [ ... ],
-    "stops": [ ... ],
-    "departure_time_iso": "2026-10-09T08:30:00+05:30",
-    "parameters": {}
-  }
-  ```
-
-### 4. Regional Guidelines
-* **GET** `/api/guidelines?region=MUMBAI_MMRDA`
-* **Description:** Retrieves municipal truck restriction windows, height limits, and legal citations.
-
----
-
-## Getting Started Locally
-
-### 1. Clone Repository
+### 1. Clone the Repository
 ```bash
 git clone https://github.com/Sparsh566/RouteOpt.git
 cd RouteOpt
 ```
 
-### 2. Set Up Virtual Environment
+### 2. Create and Activate Virtual Environment
 ```bash
-python -m venv venv
-# On Windows:
-.\venv\Scripts\Activate.ps1
-# On Linux/macOS:
-source venv/bin/activate
+# Windows
+python -m venv .venv
+.venv\Scripts\activate
+
+# Linux / macOS
+python3 -m venv .venv
+source .venv/bin/activate
 ```
 
 ### 3. Install Dependencies
 ```bash
-pip install -r requirements.txt
+pip install -r requirements-dev.txt
 ```
 
 ### 4. Configure Environment Variables
-Create a `.env` file in the root directory:
-```env
-GROQ_API_KEY=your_groq_api_key_here
-OSRM_URL=http://localhost:5000
-DEFAULT_REGION=MUMBAI_MMRDA
+```bash
+# Copy example configuration
+cp .env.example .env
 ```
+*(Optional: Provide `GROQ_API_KEY` in `.env` for AI advisory text. If omitted, RouteOpt uses its deterministic dispatch rule fallback automatically).*
 
-### 5. Run the Application
+### 5. Run Backend Server
 ```bash
 python run.py
 ```
-Open your browser at `http://127.0.0.1:8000`. API documentation is available at `http://127.0.0.1:8000/docs`.
+The server will start at `http://127.0.0.1:8000`. Navigate to `http://127.0.0.1:8000` in your browser to access the Leaflet Dispatch UI.
 
-### 6. Run Test Suite
+---
+
+## Benchmark Reproduction Guide
+
+### 1. Standard Solomon CVRPTW Validation
+Evaluates RouteOpt's OR-Tools engine on standard literature instances (C101, R101, RC101) and reports the optimality gap against Best-Known Solutions (BKS):
 ```bash
-python -m pytest backend/tests/test_v2_v3.py -v
+python benchmarks/solomon_validator.py
 ```
 
+### 2. Synthetic Instance Generation
+Generates reproducible Indian urban logistics scenarios with configurable seed, stop count, region, and fleet mix:
+```bash
+python benchmarks/generator.py --seed 42 --stops 25 --region MUMBAI_MMRDA --fleet-mix mixed
+```
+
+### 3. Policy & Solver Benchmark Harness
+Runs multi-policy comparison across Ban-Ignorant Trucks (Policy A), Ban-Aware Trucks (Policy B), and Mixed Fleet (Policy C) with OR-Tools vs. Greedy solver:
+```bash
+python benchmarks/run.py --runs 5 --out results/
+```
+Outputs generated:
+- `results/benchmark_summary.csv`: Summary table with mean and std-dev metrics.
+- `results/policy_comparison.png`: Cost vs. unserved stops chart across policies.
+- `results/solver_comparison.png`: Runtime and cost trade-off between OR-Tools and Greedy fallback.
+
 ---
 
-## Deployment on Vercel
+## Automated Verification Suite
 
-RouteOpt is configured for zero-config Vercel deployment:
+Run automated linting, type-checking, and unit tests:
+```bash
+# Code style and lint check
+ruff check backend/
 
-1. Import repository `Sparsh566/RouteOpt` on [Vercel](https://vercel.com/new).
-2. Ensure the deployment branch is set to `main`.
-3. Add the following environment variable under Project Settings:
-   - `GROQ_API_KEY`: Your Groq API key
-4. Click **Deploy**. Vercel will build the serverless Python functions and deploy the frontend static interface automatically.
+# Strict type checking
+mypy backend/
 
----
-
-## License
-
-This project is developed for academic and engineering demonstrations of commercial logistics optimization.
+# Unit & regression test suite
+pytest -v
+```
