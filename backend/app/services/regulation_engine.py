@@ -78,6 +78,17 @@ class RegionalRegulationEngine:
         self.violation_fine_inr = penalties.get("violation_fine_inr", 20000.0)
         self.legal_basis = penalties.get("legal_basis", "Motor Vehicles Act, 1988")
 
+    def is_peak_ban_active(self, arrival_time_sec: float) -> bool:
+        """
+        Unified peak-hour truck ban rule.
+        Returns True if arrival timestamp falls within restricted morning or evening peak windows.
+        Shared across OR-Tools constraints, greedy fallback, and RouteValidator.
+        """
+        sec = int(arrival_time_sec) % 86400
+        return (self.morning_ban_start <= sec <= self.morning_ban_end) or (
+            self.evening_ban_start <= sec <= self.evening_ban_end
+        )
+
     def check_time_in_no_entry_window(self, clock_seconds: int) -> tuple[bool, str]:
         """
         Verifies if arrival time falls into Heavy Goods Vehicle (HGV/HCV) no-entry ban hours.

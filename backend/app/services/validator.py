@@ -218,28 +218,16 @@ class RouteValidator:
                             vehicle_id=v_id
                         ))
 
-                # HCV Urban Peak Ban check (B1)
+                # HCV Urban Peak Ban check (B1 - unified arrival ban rule)
                 if (
                     self.enforce_guidelines
                     and vehicle.vehicle_class == VehicleClass.FREIGHT_TRUCK
                     and stop.is_in_restricted_urban_core
                 ):
-                    m_start, m_end = self.reg_engine.morning_ban_start, self.reg_engine.morning_ban_end
-                    e_start, e_end = self.reg_engine.evening_ban_start, self.reg_engine.evening_ban_end
-                    service_start = effective_arrival
-                    service_finish = service_start + float(stop.service_duration_sec)
-
-                    if (m_start <= service_start <= m_end) or (e_start <= service_start <= e_end):
+                    if self.reg_engine.is_peak_ban_active(effective_arrival):
                         errors.append(RouteValidationError(
                             code="TRUCK_PEAK_BAN_VIOLATION",
-                            message=f"Freight truck '{vehicle.name}' served urban core stop '{stop.name}' during restricted peak ban hours (arrival: {service_start}s).",
-                            stop_id=stop.stop_id,
-                            vehicle_id=v_id
-                        ))
-                    elif (m_start <= service_finish <= m_end) or (e_start <= service_finish <= e_end):
-                        errors.append(RouteValidationError(
-                            code="TRUCK_PEAK_BAN_VIOLATION",
-                            message=f"Freight truck '{vehicle.name}' service window at urban stop '{stop.name}' overlaps with peak ban hours.",
+                            message=f"Freight truck '{vehicle.name}' served urban core stop '{stop.name}' during restricted peak ban hours (arrival: {effective_arrival}s).",
                             stop_id=stop.stop_id,
                             vehicle_id=v_id
                         ))
