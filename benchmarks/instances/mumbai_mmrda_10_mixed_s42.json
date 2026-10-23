@@ -1,0 +1,163 @@
+{
+  "instance_id": "mumbai_mmrda_10_mixed_s42",
+  "metadata": {
+    "seed": 42,
+    "stop_count": 10,
+    "region": "MUMBAI_MMRDA",
+    "fleet_mix": "mixed",
+    "window_tightness": "moderate",
+    "restriction_density": 0.4,
+    "total_demand_kg": 2804.1
+  },
+  "depot": {
+    "depot_id": "DEPOT-MUM",
+    "name": "Bhiwandi Central Hub",
+    "lat": 19.2967,
+    "lon": 73.0631,
+    "operating_hours_sec": 43200
+  },
+  "fleet": [
+    {
+      "vehicle_id": "TRUCK-01",
+      "name": "Tata 407 Truck 1",
+      "vehicle_class": "FREIGHT_TRUCK",
+      "payload_capacity_kg": 4000.0,
+      "gross_vehicle_weight_tonnes": 7.5,
+      "height_meters": 3.1,
+      "fixed_dispatch_cost": 1200.0,
+      "running_cost_per_km": 24.0
+    },
+    {
+      "vehicle_id": "VAN-01",
+      "name": "Tata Ace Van 1",
+      "vehicle_class": "DELIVERY_VAN",
+      "payload_capacity_kg": 1200.0,
+      "gross_vehicle_weight_tonnes": 2.2,
+      "height_meters": 1.9,
+      "fixed_dispatch_cost": 500.0,
+      "running_cost_per_km": 14.0
+    },
+    {
+      "vehicle_id": "VAN-02",
+      "name": "Tata Ace Van 2",
+      "vehicle_class": "DELIVERY_VAN",
+      "payload_capacity_kg": 1200.0,
+      "gross_vehicle_weight_tonnes": 2.2,
+      "height_meters": 1.9,
+      "fixed_dispatch_cost": 500.0,
+      "running_cost_per_km": 14.0
+    }
+  ],
+  "stops": [
+    {
+      "stop_id": "S001",
+      "name": "Customer Delivery 001",
+      "lat": 18.9295,
+      "lon": 72.86876,
+      "demand_kg": 162.6,
+      "time_window_start_sec": 46507,
+      "time_window_end_sec": 55507,
+      "service_duration_sec": 600,
+      "is_in_restricted_urban_core": false
+    },
+    {
+      "stop_id": "S002",
+      "name": "Customer Delivery 002",
+      "lat": 19.25903,
+      "lon": 72.82173,
+      "demand_kg": 236.1,
+      "time_window_start_sec": 31243,
+      "time_window_end_sec": 40243,
+      "service_duration_sec": 600,
+      "is_in_restricted_urban_core": false
+    },
+    {
+      "stop_id": "S003",
+      "name": "Customer Delivery 003",
+      "lat": 19.01591,
+      "lon": 72.81186,
+      "demand_kg": 153.6,
+      "time_window_start_sec": 44637,
+      "time_window_end_sec": 53637,
+      "service_duration_sec": 600,
+      "is_in_restricted_urban_core": true
+    },
+    {
+      "stop_id": "S004",
+      "name": "Customer Delivery 004",
+      "lat": 19.00377,
+      "lon": 72.94732,
+      "demand_kg": 379.5,
+      "time_window_start_sec": 30740,
+      "time_window_end_sec": 39740,
+      "service_duration_sec": 600,
+      "is_in_restricted_urban_core": false
+    },
+    {
+      "stop_id": "S005",
+      "name": "Customer Delivery 005",
+      "lat": 19.18529,
+      "lon": 72.88506,
+      "demand_kg": 137.5,
+      "time_window_start_sec": 51275,
+      "time_window_end_sec": 60275,
+      "service_duration_sec": 600,
+      "is_in_restricted_urban_core": false
+    },
+    {
+      "stop_id": "S006",
+      "name": "Customer Delivery 006",
+      "lat": 18.94577,
+      "lon": 72.81677,
+      "demand_kg": 393.6,
+      "time_window_start_sec": 43640,
+      "time_window_end_sec": 52640,
+      "service_duration_sec": 600,
+      "is_in_restricted_urban_core": true
+    },
+    {
+      "stop_id": "S007",
+      "name": "Customer Delivery 007",
+      "lat": 19.1973,
+      "lon": 72.93406,
+      "demand_kg": 440.1,
+      "time_window_start_sec": 38776,
+      "time_window_end_sec": 47776,
+      "service_duration_sec": 600,
+      "is_in_restricted_urban_core": false
+    },
+    {
+      "stop_id": "S008",
+      "name": "Customer Delivery 008",
+      "lat": 19.23517,
+      "lon": 72.95463,
+      "demand_kg": 398.8,
+      "time_window_start_sec": 43070,
+      "time_window_end_sec": 52070,
+      "service_duration_sec": 600,
+      "is_in_restricted_urban_core": false
+    },
+    {
+      "stop_id": "S009",
+      "name": "Customer Delivery 009",
+      "lat": 18.93741,
+      "lon": 72.85697,
+      "demand_kg": 187.1,
+      "time_window_start_sec": 32323,
+      "time_window_end_sec": 41323,
+      "service_duration_sec": 600,
+      "is_in_restricted_urban_core": false
+    },
+    {
+      "stop_id": "S010",
+      "name": "Customer Delivery 010",
+      "lat": 18.94717,
+      "lon": 72.82946,
+      "demand_kg": 315.2,
+      "time_window_start_sec": 38480,
+      "time_window_end_sec": 47480,
+      "service_duration_sec": 600,
+      "is_in_restricted_urban_core": true
+    }
+  ]
+}

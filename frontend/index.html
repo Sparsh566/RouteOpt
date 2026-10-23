@@ -1,0 +1,562 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RouteOpt - Commercial Fleet Routing & Dispatch System</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <!-- FontAwesome for standard operational icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+    <!-- Custom Style -->
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar Panel -->
+        <aside class="sidebar">
+            <header class="sidebar-header">
+                <div class="brand">
+                    <div class="brand-icon"><i class="fa-solid fa-truck"></i></div>
+                    <div class="brand-text">
+                        <h1>RouteOpt</h1>
+                        <span class="brand-sub">Commercial Fleet Transport System</span>
+                    </div>
+                </div>
+                <div class="status-indicator">
+                    <span class="status-dot"></span>
+                    <span class="status-label">System Active</span>
+                </div>
+            </header>
+
+            <!-- Navigation Tabs -->
+            <nav class="sidebar-nav">
+                <button class="nav-tab active" data-tab="dispatch" title="Dispatch Planning">
+                    <i class="fa-solid fa-clipboard-list"></i> Dispatch
+                </button>
+                <button class="nav-tab" data-tab="manager" id="managerTabBtn" disabled title="Fleet Manager Executive Dashboard">
+                    <i class="fa-solid fa-chart-line"></i> Manager
+                </button>
+                <button class="nav-tab" data-tab="driver" id="driverTabBtn" disabled title="Driver Delivery Turn-by-Turn HUD">
+                    <i class="fa-solid fa-truck"></i> Driver HUD
+                </button>
+                <button class="nav-tab" data-tab="simulation" title="AI Road Simulator & Regulations">
+                    <i class="fa-solid fa-bolt"></i> AI Simulate
+                </button>
+            </nav>
+
+            <div class="sidebar-content">
+                <!-- Tab 1: Dispatch Planning -->
+                <section class="tab-pane active" id="tab-dispatch">
+                    
+                    <!-- Traffic Rule Status Box -->
+                    <div class="card rule-card">
+                        <div class="card-header">
+                            <span class="card-title"><i class="fa-solid fa-traffic-light"></i> Municipal Traffic Regulation</span>
+                            <select id="regionSelector" class="region-select-badge" title="Switch Region">
+                                <option value="MUMBAI_MMRDA" selected>Mumbai MMRDA</option>
+                                <option value="PUNE_PMC">Pune PMC</option>
+                                <option value="NAGPUR_NMC">Nagpur NMC</option>
+                            </select>
+                        </div>
+                        <div class="time-control-group">
+                            <div class="time-row">
+                                <label for="shiftTimeSlider">Dispatch Departure Time:</label>
+                                <strong id="clockDisplay">08:30 AM</strong>
+                            </div>
+                            <input type="range" id="shiftTimeSlider" min="0" max="23.5" step="0.5" value="8.5">
+                        </div>
+                        <div class="rule-status-box status-restricted" id="ruleStatusBox">
+                            <div class="rule-status-title" id="ruleStatusTitle">NO-ENTRY RESTRICTION ACTIVE</div>
+                            <div class="rule-status-desc" id="ruleStatusDesc">Heavy trucks (Tata 407) are banned in city limits from 08:00 AM to 11:30 AM. Small delivery vans (Tata Ace) are allowed.</div>
+                        </div>
+                    </div>
+
+                    <!-- Commercial Vehicle Selection -->
+                    <div class="card">
+                        <div class="card-header">
+                            <span class="card-title"><i class="fa-solid fa-truck-moving"></i> Available Vehicles</span>
+                            <span class="fleet-count-tag" id="fleetSummaryTag">2 Vans, 1 Truck</span>
+                        </div>
+                        <p class="field-hint">Select the number of vehicles for this delivery shift.</p>
+
+                        <div class="vehicle-list">
+                            <div class="vehicle-row">
+                                <div class="vehicle-type-icon van-type">
+                                    <i class="fa-solid fa-truck-pickup"></i>
+                                </div>
+                                <div class="vehicle-details">
+                                    <div class="vehicle-name">Delivery Van (Tata Ace / Dost)</div>
+                                    <div class="vehicle-specs">Max Load: 1,200 kg | Height: 1.9 m</div>
+                                    <div class="vehicle-badge badge-allowed">Allowed everywhere in city</div>
+                                </div>
+                                <div class="counter-control">
+                                    <button class="btn-counter" id="btnDecVan" title="Decrease vans">-</button>
+                                    <span class="counter-number" id="vanCount">2</span>
+                                    <button class="btn-counter" id="btnIncVan" title="Increase vans">+</button>
+                                </div>
+                            </div>
+
+                            <div class="vehicle-row">
+                                <div class="vehicle-type-icon truck-type">
+                                    <i class="fa-solid fa-truck-front"></i>
+                                </div>
+                                <div class="vehicle-details">
+                                    <div class="vehicle-name">Freight Truck (Tata 407 / Eicher)</div>
+                                    <div class="vehicle-specs">Max Load: 4,500 kg | Height: 3.1 m</div>
+                                    <div class="vehicle-badge badge-banned">Banned in city 8:00-11:30 AM & 5:00-9:30 PM</div>
+                                </div>
+                                <div class="counter-control">
+                                    <button class="btn-counter" id="btnDecTruck" title="Decrease trucks">-</button>
+                                    <span class="counter-number" id="truckCount">1</span>
+                                    <button class="btn-counter" id="btnIncTruck">+</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Delivery Locations List -->
+                    <div class="card flex-grow">
+                        <div class="card-header">
+                            <span class="card-title"><i class="fa-solid fa-location-dot"></i> Delivery Drops & Warehouse</span>
+                            <span class="badge" id="stopsCount">0 stops</span>
+                        </div>
+                        <!-- Benchmark Scale Selector Chips (6, 10, 20, 30 Drops) -->
+                        <div class="scale-chips-row">
+                            <span class="scale-label">Benchmark Scale:</span>
+                            <button type="button" class="btn-scale-chip active" data-scale="6">6 Drops</button>
+                            <button type="button" class="btn-scale-chip" data-scale="10">10 Drops</button>
+                            <button type="button" class="btn-scale-chip" data-scale="20">20 Drops</button>
+                            <button type="button" class="btn-scale-chip" data-scale="30">30 Drops</button>
+                        </div>
+
+                        <!-- Manual Add Freight Hub Row -->
+                        <div class="manual-add-row">
+                            <select id="quickSelectHub" class="quick-hub-select">
+                                <option value="">-- Quick-Add Logistics Hub --</option>
+                                <option value="KALAMBOLI">Kalamboli Steel Market (900 kg)</option>
+                                <option value="TALOJA">Taloja MIDC Industrial Hub (850 kg)</option>
+                                <option value="WADALA">Wadala Truck Terminal (700 kg)</option>
+                                <option value="TURBHE">Turbhe Freight Terminal (650 kg)</option>
+                                <option value="PANVEL">Panvel JNPT Bypass (950 kg)</option>
+                                <option value="KURLA">Kurla Kamani Industrial (400 kg)</option>
+                                <option value="GOREGAON">Goregaon NESCO Logistics (450 kg)</option>
+                                <option value="LOWER_PAREL">Lower Parel Commercial Dock (350 kg)</option>
+                                <option value="BORIVALI">Borivali Link Road Center (500 kg)</option>
+                                <option value="MAHAPE">Mahape Millennium Business Park (500 kg)</option>
+                            </select>
+                            <button type="button" class="btn btn-secondary btn-sm" id="btnQuickAddHub" title="Add freight hub to route">
+                                <i class="fa-solid fa-plus"></i> Add
+                            </button>
+                        </div>
+                        <p class="field-hint">Click on map or select above to add stops. Click <i class="fa-solid fa-xmark"></i> on any stop to remove it.</p>
+
+                        <div class="stop-list-container" id="locationList">
+                            <div class="empty-state">
+                                <i class="fa-solid fa-map"></i>
+                                <p>No delivery locations loaded.</p>
+                                <button class="btn btn-secondary btn-sm" id="loadSampleBtn">
+                                    <i class="fa-solid fa-download"></i> Load Mumbai Transport Dataset
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Action Buttons -->
+                    <!-- Action Buttons -->
+                    <div class="action-footer">
+                        <button class="btn btn-primary" id="optimizeBtn" disabled>
+                            <i class="fa-solid fa-check"></i>
+                            <span id="optimizeBtnText">Calculate Optimal Routes</span>
+                        </button>
+                        <button class="btn btn-outline" id="clearBtn" title="Reset all stops">
+                            <i class="fa-solid fa-rotate-left"></i> Reset
+                        </button>
+                    </div>
+                </section>
+
+                <!-- Tab 2: Fleet Manager Executive Dashboard -->
+                <section class="tab-pane" id="tab-manager">
+                    <div class="card">
+                        <div class="card-header">
+                            <span class="card-title"><i class="fa-solid fa-chart-pie text-primary"></i> Operations & ESG Overview</span>
+                            <span class="badge badge-success" id="managerStatusBadge">Fleet Ready</span>
+                        </div>
+                        <div class="manager-kpi-grid">
+                            <div class="kpi-cell">
+                                <span class="kpi-label">Operational Cost</span>
+                                <strong class="kpi-val text-primary" id="managerCost">₹0</strong>
+                                <span class="kpi-sub" id="managerCostSub">Fixed + Fuel Cost</span>
+                            </div>
+                            <div class="kpi-cell">
+                                <span class="kpi-label">Capacity Utilized</span>
+                                <strong class="kpi-val text-success" id="managerUtilization">0%</strong>
+                                <span class="kpi-sub" id="managerLoadSub">0 / 0 kg cargo</span>
+                            </div>
+                            <div class="kpi-cell">
+                                <span class="kpi-label">CO₂ Prevented (ESG)</span>
+                                <strong class="kpi-val text-emerald" id="managerCo2">0.0 kg</strong>
+                                <span class="kpi-sub">Optimized vs Detours</span>
+                            </div>
+                            <div class="kpi-cell">
+                                <span class="kpi-label">Legal Fine Risk</span>
+                                <strong class="kpi-val text-success" id="managerLegalRisk">₹0 Risk</strong>
+                                <span class="kpi-sub">100% City Compliant</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Fleet Allocation Matrix -->
+                    <div class="card">
+                        <div class="card-header">
+                            <span class="card-title"><i class="fa-solid fa-truck-ramp-box"></i> Fleet Allocation Matrix</span>
+                            <span class="badge" id="managerActiveCount">0 Active</span>
+                        </div>
+                        <div class="fleet-matrix-wrapper">
+                            <table class="fleet-matrix-table" id="managerFleetTable">
+                                <thead>
+                                    <tr>
+                                        <th>Vehicle</th>
+                                        <th>Class</th>
+                                        <th>Stops</th>
+                                        <th>Payload</th>
+                                        <th>Est. Cost</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="managerFleetTbody">
+                                    <tr><td colspan="5" style="text-align:center; color:#94a3b8; padding:12px;">Calculate routes to populate fleet table.</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Fleet Trade-off Comparison Widget (1 Heavy Truck vs 3 Delivery Vans) -->
+                    <div class="card trade-off-card">
+                        <div class="card-header">
+                            <span class="card-title"><i class="fa-solid fa-scale-balanced text-primary"></i> Fleet Trade-off Analyzer</span>
+                            <span class="trade-off-badge">1 Truck vs 3 Vans</span>
+                        </div>
+                        <p class="field-hint">Cost and time trade-off between 1 Heavy Truck (Tata 407) vs. 3 Nimble Delivery Vans (Tata Ace) under municipal peak bans:</p>
+
+                        <div class="trade-off-table-wrapper">
+                            <table class="trade-off-table">
+                                <thead>
+                                    <tr>
+                                        <th>Metric</th>
+                                        <th>1 Heavy Truck</th>
+                                        <th>3 Delivery Vans</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td><strong>Fuel & Wage Cost</strong></td>
+                                        <td class="text-success">₹1,850 (Lower)</td>
+                                        <td class="text-amber">₹2,320 (+₹470)</td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>No-Entry Delay</strong></td>
+                                        <td class="text-danger"><strong>+4.5 hrs</strong> (Banned outside city)</td>
+                                        <td class="text-success"><strong>0 min</strong> (Exempt from city ban)</td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>Police Fine Risk</strong></td>
+                                        <td class="text-danger"><strong>₹20,000 fine</strong> (Sec 115 MVA)</td>
+                                        <td class="text-success"><strong>₹0</strong> (100% Legal Exemption)</td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>Flyover Gantries</strong></td>
+                                        <td class="text-amber">Bypasses flyovers (2.5m limit)</td>
+                                        <td class="text-success">Direct route over flyovers</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="trade-off-verdict">
+                            <i class="fa-solid fa-circle-check text-success"></i>
+                            <span id="tradeOffRecommendationText"><strong>Dispatch Strategy:</strong> Using 3 Tata Ace delivery vans eliminates fine liabilities and completes deliveries faster during peak hours.</span>
+                        </div>
+                    </div>
+
+                    <!-- Manager Report Actions -->
+                    <div class="manager-actions-row">
+                        <button class="btn btn-secondary btn-block" id="exportManifestBtn">
+                            <i class="fa-solid fa-file-invoice"></i> Export & Print Dispatch Manifest
+                        </button>
+                        <button class="btn btn-outline btn-block" id="downloadCsvBtnQuick">
+                            <i class="fa-solid fa-file-csv"></i> Download Dispatch Manifest CSV
+                        </button>
+                    </div>
+                </section>
+
+                <!-- Tab 3: Driver Turn-by-Turn Delivery HUD -->
+                <section class="tab-pane" id="tab-driver">
+                    <!-- Driver Vehicle Switcher -->
+                    <div class="card driver-selector-card">
+                        <div class="card-header">
+                            <span class="card-title"><i class="fa-solid fa-id-badge text-primary"></i> Assigned Driver & Vehicle</span>
+                        </div>
+                        <div class="driver-select-group">
+                            <label for="driverVehicleSelect">Select Driver Route:</label>
+                            <select id="driverVehicleSelect" class="driver-vehicle-select">
+                                <option value="">-- Choose Assigned Vehicle --</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Next Stop Focus Card -->
+                    <div class="next-stop-hero-card" id="driverNextStopCard">
+                        <div class="next-stop-header">
+                            <span class="next-stop-badge">NEXT DESTINATION</span>
+                            <span class="next-stop-clock" id="driverNextTime">--:--</span>
+                        </div>
+                        <h3 class="next-stop-name" id="driverNextName">Warehouse Hub (Depot)</h3>
+                        <div class="next-stop-meta" id="driverNextMeta">Calculate routes to begin turn-by-turn navigation.</div>
+                        <div class="next-stop-actions">
+                            <button class="btn btn-success btn-block" id="btnMarkCurrentDelivered">
+                                <i class="fa-solid fa-circle-check"></i> Mark Stop as Completed / Delivered
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Shift Progress Meter -->
+                    <div class="card driver-progress-card">
+                        <div class="progress-info-row">
+                            <span>Delivery Route Progress:</span>
+                            <strong id="driverProgressRatio">0 / 0 Completed</strong>
+                        </div>
+                        <div class="progress-bar-track">
+                            <div class="progress-bar-fill" id="driverProgressBar" style="width: 0%;"></div>
+                        </div>
+                    </div>
+
+                    <!-- Turn-by-Turn Waypoints Checklist -->
+                    <div class="card">
+                        <div class="card-header">
+                            <span class="card-title"><i class="fa-solid fa-list-check"></i> Turn-by-Turn Waypoints</span>
+                            <span class="badge" id="driverTotalDrops">0 Drops</span>
+                        </div>
+                        <div class="driver-checklist-container" id="driverChecklistContainer">
+                            <p style="font-size: 11px; color: #94a3b8; text-align: center; padding: 12px 0;">No active driver route selected.</p>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Tab 4: AI What-If Simulator & City Rules -->
+                <section class="tab-pane" id="tab-simulation">
+                    <!-- Custom Situation Input Card -->
+                    <div class="card custom-scenario-box">
+                        <div class="card-header">
+                            <span class="card-title"><i class="fa-solid fa-pen-to-square"></i> Custom Problem / Situation</span>
+                        </div>
+                        <p class="field-hint">Type any real-world delay, breakdown, customer change, or road rule question (or click a local situation below):</p>
+                        
+                        <div class="custom-prompt-chips" id="customPromptChipsContainer" style="display:flex; flex-wrap:wrap; gap:6px; margin-bottom:8px;">
+                            <!-- Populated dynamically based on active city -->
+                        </div>
+
+                        <textarea id="customSituationInput" rows="3" class="custom-textarea" placeholder="Type a road problem or choose a local situation above..."></textarea>
+                        
+                        <button class="btn btn-primary btn-block" id="runCustomSimulationBtn" style="margin-top: 8px;">
+                            <i class="fa-solid fa-bolt"></i> Analyze Custom Problem with AI
+                        </button>
+                    </div>
+
+                    <div class="section-divider-label">OR TEST A PRESET ROAD SITUATION</div>
+
+                    <div class="scenario-list">
+                        <div class="scenario-card active" data-scenario="BORDER_ENTRY_DELAY">
+                            <div class="scenario-radio"><i class="fa-solid fa-circle-dot"></i></div>
+                            <div class="scenario-body">
+                                <strong>Toll Checkpost Delay (Hits No-Entry Ban)</strong>
+                                <span id="presetDescDelay">Truck is delayed 60 mins at toll border, reaching city limits during the evening ban window.</span>
+                            </div>
+                        </div>
+
+                        <div class="scenario-card" data-scenario="FLEET_SWAP_TRUCK_TO_VANS">
+                            <div class="scenario-radio"><i class="fa-regular fa-circle"></i></div>
+                            <div class="scenario-body">
+                                <strong>Vehicle Swap: 1 Big Truck replaced by 3 Tata Ace Vans</strong>
+                                <span>Check the cost and time trade-off of using 3 small delivery vans to bypass all city truck bans.</span>
+                            </div>
+                        </div>
+
+                        <div class="scenario-card" data-scenario="FLYOVER_HEIGHT_CLOSURE">
+                            <div class="scenario-radio"><i class="fa-regular fa-circle"></i></div>
+                            <div class="scenario-body">
+                                <strong>Flyover Closed (Low Clearance Bridge Detour)</strong>
+                                <span>Main flyover is shut, forcing heavy trucks to take surface roads due to 2.5m height barrier.</span>
+                            </div>
+                        </div>
+
+                        <div class="scenario-card" data-scenario="SUDDEN_VIP_ORDER_INSERTION">
+                            <div class="scenario-radio"><i class="fa-regular fa-circle"></i></div>
+                            <div class="scenario-body">
+                                <strong>Urgent Delivery Added on Active Route</strong>
+                                <span>Test assigning an emergency customer drop into the nearest running vehicle with free capacity.</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="sim-actions">
+                        <button class="btn btn-secondary btn-block" id="runSimulationBtn">
+                            <i class="fa-solid fa-play"></i> Run Selected Preset Scenario
+                        </button>
+                    </div>
+
+                    <!-- Simulation Result Card -->
+                    <div class="card sim-result-panel hidden" id="simResultCard">
+                        <div class="result-title-row">
+                            <span class="result-badge badge-warning" id="simStatusPill">VIOLATION DETECTED</span>
+                            <span class="result-time" id="simSpeedText">0.4s</span>
+                        </div>
+
+                        <h3 class="scenario-heading" id="simScenarioTitle">Scenario Outcome</h3>
+
+                        <div class="summary-stat-grid">
+                            <div class="stat-cell">
+                                <span class="stat-name">Cost Difference</span>
+                                <span class="stat-digit" id="simCostDelta">+Rs 20,720</span>
+                            </div>
+                            <div class="stat-cell">
+                                <span class="stat-name">Time Difference</span>
+                                <span class="stat-digit" id="simTimeDelta">+4.5 hrs</span>
+                            </div>
+                            <div class="stat-cell">
+                                <span class="stat-name">Police Fine Risk</span>
+                                <span class="stat-digit text-danger" id="simFineRisk">Rs 20,000</span>
+                            </div>
+                        </div>
+
+                        <div class="guidance-block">
+                            <div class="guidance-title"><i class="fa-solid fa-triangle-exclamation"></i> Operational Finding:</div>
+                            <p id="simAiReport">Loading analysis...</p>
+                        </div>
+
+                        <div class="guidance-block action-block">
+                            <div class="guidance-title"><i class="fa-solid fa-arrow-right"></i> What To Do:</div>
+                            <p id="simActionText">Hold at outer hub or shift cargo to delivery vans.</p>
+                        </div>
+                    </div>
+
+                    <!-- Regional Commercial Transport Rules Document (Embedded) -->
+                    <div class="card" style="margin-top: 14px;">
+                        <div class="card-header">
+                            <span class="card-title"><i class="fa-solid fa-book text-primary"></i> Municipal Road Regulations</span>
+                        </div>
+                        <div class="rules-document" id="cityRulesDocument">
+                            <!-- Populated dynamically by app.js based on active city -->
+                        </div>
+                    </div>
+                </section>
+            </div>
+        </aside>
+
+        <!-- Map Container -->
+        <main class="map-wrapper">
+            <div id="map"></div>
+
+            <!-- Top Route Stats Bar -->
+            <div class="map-topbar hidden" id="mapMetricsBar">
+                <div class="bar-item">
+                    <span class="status-pill status-success" id="metricStatusPill">SUCCESS</span>
+                </div>
+                <div class="bar-item"><i class="fa-solid fa-road text-primary"></i> <span id="metricDist">-</span></div>
+                <div class="bar-item"><i class="fa-solid fa-clock text-amber"></i> <span id="metricTime">-</span></div>
+                <div class="bar-item"><i class="fa-solid fa-truck text-success"></i> <span id="metricVehicles">-</span></div>
+                <div class="bar-item"><i class="fa-solid fa-microchip text-primary"></i> <span id="metricSolver">OR-Tools</span></div>
+                <div class="bar-item"><i class="fa-regular fa-clock text-slate"></i> <span id="metricDeparture">08:30 AM</span></div>
+                <div class="bar-item">
+                    <span class="road-badge road-badge-live" id="metricRoadBadge">Live OSRM</span>
+                </div>
+                <div class="bar-item">
+                    <i class="fa-solid fa-indian-rupee-sign text-emerald"></i>
+                    <span id="metricCostBreakdown">Fixed: ₹0 | Running: ₹0</span>
+                </div>
+            </div>
+
+            <!-- Map Dropped Stops & Validation Warning Panel -->
+            <div class="map-alert-panel hidden" id="mapAlertPanel">
+                <div class="map-alert-header">
+                    <span><i class="fa-solid fa-triangle-exclamation"></i> <span id="mapAlertTitle">Routing Constraints Notice</span></span>
+                    <button type="button" id="closeMapAlertBtn" style="background:none;border:none;color:#94a3b8;cursor:pointer;font-size:14px;">&times;</button>
+                </div>
+                <div class="map-alert-list" id="mapAlertList">
+                    <!-- Dynamic dropped stop reason cards and validation error items -->
+                </div>
+            </div>
+
+            <!-- Map Floating Driver Animation Toolbar -->
+            <div class="map-anim-bar hidden" id="mapAnimBar">
+                <button class="btn-anim-ctrl" id="startMapAnimBtn" title="Start Driver Route Animation">
+                    <i class="fa-solid fa-play"></i> Start Driver Simulation
+                </button>
+                <button class="btn-anim-ctrl btn-anim-stop hidden" id="stopMapAnimBtn" title="Stop Driver Movement Simulation">
+                    <i class="fa-solid fa-pause"></i> Pause Simulation
+                </button>
+                <div class="anim-speed-selector">
+                    <button class="btn-speed active" data-speed="1">1x</button>
+                    <button class="btn-speed" data-speed="2">2x</button>
+                    <button class="btn-speed" data-speed="4">4x</button>
+                </div>
+                <span class="anim-status-indicator" id="animStatusIndicator">Driver Status: Ready</span>
+            </div>
+
+            <!-- Map Floating Regulatory Layers Toggle Control -->
+            <div class="map-layers-control" id="mapLayersControl">
+                <div class="layers-title"><i class="fa-solid fa-layer-group"></i> Road Restrictions</div>
+                <label class="layer-toggle-item">
+                    <input type="checkbox" id="toggleGeofence" checked>
+                    <span class="layer-indicator geofence-indicator"></span>
+                    <span>No-Entry Geofence</span>
+                </label>
+                <label class="layer-toggle-item">
+                    <input type="checkbox" id="toggleBarriers" checked>
+                    <span class="layer-indicator barrier-indicator"></span>
+                    <span>2.5m Height Gantries</span>
+                </label>
+                <label class="layer-toggle-item">
+                    <input type="checkbox" id="toggleBridges" checked>
+                    <span class="layer-indicator bridge-indicator"></span>
+                    <span>7.5T Bridge Limits</span>
+                </label>
+            </div>
+
+            <!-- Notification Toast Container -->
+            <div class="toast-container" id="toastContainer"></div>
+        </main>
+    </div>
+
+    <!-- Dispatch Manifest Modal -->
+    <div class="modal-backdrop hidden" id="manifestModalBackdrop">
+        <div class="modal-card manifest-modal" id="manifestModal">
+            <div class="modal-header">
+                <div class="modal-title-group">
+                    <h2><i class="fa-solid fa-file-invoice"></i> Commercial Dispatch Manifest</h2>
+                    <span class="manifest-serial" id="manifestSerialId">MANIFEST-MMRDA-20261020</span>
+                </div>
+                <button class="modal-close-btn" id="closeManifestBtn" title="Close manifest">&times;</button>
+            </div>
+            <div class="modal-body" id="manifestContent">
+                <!-- Dynamically populated by app.js -->
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-outline" id="downloadCsvBtn">
+                    <i class="fa-solid fa-file-csv"></i> Download CSV
+                </button>
+                <button class="btn btn-primary" id="printManifestBtn">
+                    <i class="fa-solid fa-print"></i> Print Official Manifest
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+    <!-- Application JS -->
+    <script src="app.js"></script>
+</body>
+</html>
