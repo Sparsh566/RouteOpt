@@ -1426,6 +1426,115 @@ function handleOptimizationSuccess(data, autoSwitchTab = true) {
     document.getElementById("metricTime").textContent = `${data.total_fleet_duration_hours} hrs`;
     document.getElementById("metricVehicles").textContent = `${data.routes.length} Active Vehicles`;
 
+    // 1. Status Banner Badge
+    const statusPill = document.getElementById("metricStatusPill");
+    if (statusPill) {
+        statusPill.className = "status-pill";
+        const st = (data.status || "SUCCESS").toUpperCase();
+        if (st === "SUCCESS") {
+            statusPill.classList.add("status-success");
+            statusPill.innerHTML = '<i class="fa-solid fa-circle-check"></i> SUCCESS';
+        } else if (st === "PARTIAL") {
+            statusPill.classList.add("status-partial");
+            statusPill.innerHTML = '<i class="fa-solid fa-triangle-exclamation"></i> PARTIAL';
+        } else {
+            statusPill.classList.add("status-infeasible");
+            statusPill.innerHTML = '<i class="fa-solid fa-circle-xmark"></i> INFEASIBLE';
+        }
+    }
+
+    // 2. Solver Used & Departure Time
+    const solverEl = document.getElementById("metricSolver");
+    if (solverEl) {
+        solverEl.textContent = data.solver_used || "OR-Tools (CVRPTW)";
+    }
+    const depEl = document.getElementById("metricDeparture");
+    if (depEl) {
+        const depIso = data.departure_time || "08:30";
+        const timeMatch = depIso.match(/T?(\d{2}:\d{2})/);
+        depEl.textContent = timeMatch ? `${timeMatch[1]} IST` : "08:30 IST";
+    }
+
+    // 3. Road Data Badge (Live OSRM vs Detour Winding)
+    const roadBadge = document.getElementById("metricRoadBadge");
+    if (roadBadge) {
+        if (data.is_real_road_data) {
+            roadBadge.className = "road-badge road-badge-live";
+            roadBadge.innerHTML = '<i class="fa-solid fa-satellite-dish"></i> Live OSRM Graph';
+        } else {
+            roadBadge.className = "road-badge road-badge-estimate";
+            roadBadge.innerHTML = '<i class="fa-solid fa-calculator"></i> Estimated Winding (1.35x)';
+        }
+    }
+
+    // 4. Cost Breakdown (Fixed Dispatch vs Variable Running)
+    const costBreakdownEl = document.getElementById("metricCostBreakdown");
+    if (costBreakdownEl) {
+        const fixedCost = Math.round(data.fixed_dispatch_cost_inr || 0);
+        const varCost = Math.round(data.variable_running_cost_inr || 0);
+        costBreakdownEl.textContent = `Fixed: ₹${fixedCost.toLocaleString()} | Running: ₹${varCost.toLocaleString()}`;
+    }
+
+    // 5. Dropped Stops & Validation Warning Panel
+    const alertPanel = document.getElementById("mapAlertPanel");
+    const alertList = document.getElementById("mapAlertList");
+    const alertTitle = document.getElementById("mapAlertTitle");
+    const closeAlertBtn = document.getElementById("closeMapAlertBtn");
+
+    if (closeAlertBtn && !closeAlertBtn._hasListener) {
+        closeAlertBtn._hasListener = true;
+        closeAlertBtn.addEventListener("click", () => alertPanel.classList.add("hidden"));
+    }
+
+    const droppedStops = data.dropped_stops || [];
+    const valErrors = data.validation_errors || [];
+    const hasIssues = droppedStops.length > 0 || valErrors.length > 0 || data.status !== "SUCCESS";
+
+    if (alertPanel && alertList) {
+        if (hasIssues) {
+            alertPanel.classList.remove("hidden");
+            if (data.status === "INFEASIBLE") {
+                alertTitle.textContent = "Routing Infeasible: Delivery Constraints Breached";
+            } else if (data.status === "PARTIAL") {
+                alertTitle.textContent = `Partial Dispatch: ${droppedStops.length} Stops Dropped`;
+            } else {
+                alertTitle.textContent = "Operational Constraints Warning";
+            }
+
+            let alertHtml = "";
+
+            // Dropped stops reason cards
+            droppedStops.forEach(sId => {
+                const stopObj = (state.stops || []).find(s => s.stop_id === sId) || { name: `Stop ${sId}` };
+                let reason = "Exceeded vehicle payload capacity or delivery cutoff deadline.";
+                if (stopObj.is_in_restricted_urban_core) {
+                    reason = "Stop is inside urban restricted core during municipal commercial vehicle peak hours.";
+                }
+                alertHtml += `
+                    <div class="map-alert-card">
+                        <strong><i class="fa-solid fa-ban"></i> Dropped Stop: ${escapeHtml(stopObj.name)} (${escapeHtml(sId)})</strong><br>
+                        <span>${escapeHtml(reason)}</span>
+                    </div>
+                `;
+            });
+
+            // Validation errors
+            valErrors.forEach(err => {
+                alertHtml += `
+                    <div class="map-alert-card warning">
+                        <strong><i class="fa-solid fa-triangle-exclamation"></i> Constraint Breach: ${escapeHtml(err.error_type || "Validation Warning")}</strong><br>
+                        <span>${escapeHtml(err.message || JSON.stringify(err))}</span>
+                    </div>
+                `;
+            });
+
+            alertList.innerHTML = alertHtml;
+        } else {
+            alertPanel.classList.add("hidden");
+            alertList.innerHTML = "";
+        }
+    }
+
     document.getElementById("mapAnimBar").classList.remove("hidden");
 
     // Dynamic Trade-Off Analysis Update

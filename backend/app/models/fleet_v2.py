@@ -77,6 +77,10 @@ class OptimizeV2Response(BaseModel):
     total_fleet_distance_km: float
     total_fleet_duration_hours: float
     total_fleet_cost_inr: float
+    fixed_dispatch_cost_inr: float = 0.0
+    variable_running_cost_inr: float = 0.0
+    solver_used: str = "Google OR-Tools (CVRPTW)"
+    departure_time: str = ""
     traffic_factor_applied: float
     regulatory_compliance_notes: List[str]
     solve_duration_ms: float

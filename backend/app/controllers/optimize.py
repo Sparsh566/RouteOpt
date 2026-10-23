@@ -73,6 +73,8 @@ async def optimize_fleet_routes(payload: OptimizeV2Request):
     total_fleet_dist = 0.0
     total_fleet_dur = 0.0
     total_fleet_cost = 0.0
+    total_fixed_cost = 0.0
+    total_variable_cost = 0.0
 
     midnight_dt = departure_dt.replace(hour=0, minute=0, second=0, microsecond=0)
 
@@ -125,11 +127,15 @@ async def optimize_fleet_routes(payload: OptimizeV2Request):
 
         dist_m = route_data["total_distance_m"]
         dur_s = route_data["total_duration_s"]
-        cost_inr = vehicle_spec.fixed_dispatch_cost + ((dist_m / 1000.0) * vehicle_spec.running_cost_per_km)
+        fixed_c = vehicle_spec.fixed_dispatch_cost
+        var_c = (dist_m / 1000.0) * vehicle_spec.running_cost_per_km
+        cost_inr = fixed_c + var_c
 
         total_fleet_dist += dist_m
         total_fleet_dur += dur_s
         total_fleet_cost += cost_inr
+        total_fixed_cost += fixed_c
+        total_variable_cost += var_c
 
         routes.append(VehicleRouteResult(
             vehicle_id=vehicle_spec.vehicle_id,
@@ -180,6 +186,10 @@ async def optimize_fleet_routes(payload: OptimizeV2Request):
         total_fleet_distance_km=round(total_fleet_dist / 1000.0, 2),
         total_fleet_duration_hours=round(total_fleet_dur / 3600.0, 2),
         total_fleet_cost_inr=round(total_fleet_cost, 2),
+        fixed_dispatch_cost_inr=round(total_fixed_cost, 2),
+        variable_running_cost_inr=round(total_variable_cost, 2),
+        solver_used=solution.get("solver_used", "Google OR-Tools (CVRPTW)"),
+        departure_time=payload.departure_time_iso,
         traffic_factor_applied=traffic_factor,
         regulatory_compliance_notes=compliance_notes,
         solve_duration_ms=round(solve_ms, 2),

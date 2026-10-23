@@ -969,6 +969,89 @@ body {
     gap: 6px;
 }
 
+.status-pill {
+    padding: 3px 8px;
+    border-radius: 9999px;
+    font-weight: 700;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+.status-pill.status-success {
+    background-color: rgba(16, 185, 129, 0.2);
+    color: #10b981;
+    border: 1px solid #10b981;
+}
+.status-pill.status-partial {
+    background-color: rgba(245, 158, 11, 0.2);
+    color: #f59e0b;
+    border: 1px solid #f59e0b;
+}
+.status-pill.status-infeasible {
+    background-color: rgba(239, 68, 68, 0.2);
+    color: #ef4444;
+    border: 1px solid #ef4444;
+}
+
+.road-badge {
+    padding: 2px 7px;
+    border-radius: 4px;
+    font-size: 10px;
+    font-weight: 600;
+}
+.road-badge-live {
+    background-color: rgba(59, 130, 246, 0.2);
+    color: #60a5fa;
+    border: 1px solid #3b82f6;
+}
+.road-badge-estimate {
+    background-color: rgba(148, 163, 184, 0.2);
+    color: #cbd5e1;
+    border: 1px solid #64748b;
+}
+
+.map-alert-panel {
+    position: absolute;
+    top: 60px;
+    left: 20px;
+    max-width: 420px;
+    z-index: 998;
+    background-color: rgba(15, 23, 42, 0.95);
+    backdrop-filter: blur(8px);
+    border: 1px solid rgba(239, 68, 68, 0.4);
+    border-radius: var(--radius);
+    padding: 12px;
+    color: #f8fafc;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6);
+}
+.map-alert-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-weight: 700;
+    font-size: 13px;
+    color: #f87171;
+    margin-bottom: 8px;
+}
+.map-alert-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    max-height: 220px;
+    overflow-y: auto;
+}
+.map-alert-card {
+    background-color: rgba(30, 41, 59, 0.8);
+    border-left: 3px solid #f87171;
+    padding: 8px 10px;
+    border-radius: 4px;
+    font-size: 11px;
+    line-height: 1.4;
+}
+.map-alert-card.warning {
+    border-left-color: #f59e0b;
+}
+
 .hidden {
     display: none !important;
 }

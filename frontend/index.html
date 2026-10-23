@@ -461,9 +461,32 @@
 
             <!-- Top Route Stats Bar -->
             <div class="map-topbar hidden" id="mapMetricsBar">
+                <div class="bar-item">
+                    <span class="status-pill status-success" id="metricStatusPill">SUCCESS</span>
+                </div>
                 <div class="bar-item"><i class="fa-solid fa-road text-primary"></i> <span id="metricDist">-</span></div>
                 <div class="bar-item"><i class="fa-solid fa-clock text-amber"></i> <span id="metricTime">-</span></div>
                 <div class="bar-item"><i class="fa-solid fa-truck text-success"></i> <span id="metricVehicles">-</span></div>
+                <div class="bar-item"><i class="fa-solid fa-microchip text-primary"></i> <span id="metricSolver">OR-Tools</span></div>
+                <div class="bar-item"><i class="fa-regular fa-clock text-slate"></i> <span id="metricDeparture">08:30 AM</span></div>
+                <div class="bar-item">
+                    <span class="road-badge road-badge-live" id="metricRoadBadge">Live OSRM</span>
+                </div>
+                <div class="bar-item">
+                    <i class="fa-solid fa-indian-rupee-sign text-emerald"></i>
+                    <span id="metricCostBreakdown">Fixed: ₹0 | Running: ₹0</span>
+                </div>
+            </div>
+
+            <!-- Map Dropped Stops & Validation Warning Panel -->
+            <div class="map-alert-panel hidden" id="mapAlertPanel">
+                <div class="map-alert-header">
+                    <span><i class="fa-solid fa-triangle-exclamation"></i> <span id="mapAlertTitle">Routing Constraints Notice</span></span>
+                    <button type="button" id="closeMapAlertBtn" style="background:none;border:none;color:#94a3b8;cursor:pointer;font-size:14px;">&times;</button>
+                </div>
+                <div class="map-alert-list" id="mapAlertList">
+                    <!-- Dynamic dropped stop reason cards and validation error items -->
+                </div>
             </div>
 
             <!-- Map Floating Driver Animation Toolbar -->
