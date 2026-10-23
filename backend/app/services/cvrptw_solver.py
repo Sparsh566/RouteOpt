@@ -66,6 +66,11 @@ class CVRPTWSolver:
         self.region = region
         self.reg_engine = RegionalRegulationEngine(region)
 
+        # Auto-derive restricted urban core status from stop coordinates if not explicitly set
+        for s in self.stops:
+            if not s.is_in_restricted_urban_core:
+                s.is_in_restricted_urban_core = self.reg_engine.is_coordinate_in_restricted_zone(s.lat, s.lon)
+
         # Node 0 is Depot, Nodes 1..N are stops
         self.all_nodes = [depot] + stops
         self.num_nodes = len(self.all_nodes)

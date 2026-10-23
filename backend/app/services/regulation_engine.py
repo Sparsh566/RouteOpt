@@ -14,8 +14,24 @@ logger = logging.getLogger("routeopt.regulations")
 
 DATA_FILE_PATH = os.path.join(os.path.dirname(os.path.dirname(__file__)), "data", "regulations.json")
 
+def _is_point_in_polygon(lat: float, lon: float, polygon: list[list[float]]) -> bool:
+    """Ray casting point-in-polygon algorithm to check if (lat, lon) is within polygon boundary."""
+    n = len(polygon)
+    if n < 3:
+        return False
+    inside = False
+    p1_lat, p1_lon = polygon[0]
+    for i in range(1, n + 1):
+        p2_lat, p2_lon = polygon[i % n]
+        if (p1_lat > lat) != (p2_lat > lat):
+            x_cross = (lat - p1_lat) * (p2_lon - p1_lon) / (p2_lat - p1_lat) + p1_lon
+            if lon < x_cross:
+                inside = not inside
+        p1_lat, p1_lon = p2_lat, p2_lon
+    return inside
+
 class RegionalRegulationEngine:
-    _cached_data = None
+    _cached_data: dict[str, Any] | None = None
 
     @classmethod
     def _load_data(cls) -> dict[str, Any]:
@@ -68,6 +84,9 @@ class RegionalRegulationEngine:
             self.evening_ban_end = 77400
             self.evening_ban_label = "Evening Peak Severe HCV Ban (05:00 PM - 09:30 PM)"
 
+        # Restricted zones
+        self.restricted_zones: list[dict[str, Any]] = reg_info.get("restricted_zones", [])
+
         # Infrastructure limits
         infra = reg_info.get("infrastructure_limits", {})
         self.flyover_height_limit_m = infra.get("flyover_height_limit_m", 2.5)
@@ -77,6 +96,17 @@ class RegionalRegulationEngine:
         penalties = reg_info.get("penalties", {})
         self.violation_fine_inr = penalties.get("violation_fine_inr", 20000.0)
         self.legal_basis = penalties.get("legal_basis", "Motor Vehicles Act, 1988")
+
+    def is_coordinate_in_restricted_zone(self, lat: float, lon: float) -> bool:
+        """
+        Derives restricted urban core status by evaluating if (lat, lon) coordinates
+        fall inside any municipal restricted zone boundary polygon using ray casting.
+        """
+        for zone in self.restricted_zones:
+            polygon = zone.get("polygon", [])
+            if _is_point_in_polygon(lat, lon, polygon):
+                return True
+        return False
 
     def is_peak_ban_active(self, arrival_time_sec: float) -> bool:
         """
