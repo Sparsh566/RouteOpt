@@ -93,7 +93,7 @@ class CVRPTWSolver:
                 # Absolute seconds since midnight (e.g. 28800 to 41400 for 08:00 - 11:30 AM)
                 w_start = s.time_window_start_sec
                 w_end = s.time_window_end_sec
-            self.normalized_windows.append((int(w_start), int(w_end)))
+            self.normalized_windows.append((w_start, w_end))
 
     def solve(self) -> dict[str, Any] | None:
         if not ORTOOLS_AVAILABLE:
@@ -177,6 +177,9 @@ class CVRPTWSolver:
         return True, service_start, depot_return_time
 
     def _solve_ortools(self) -> dict[str, Any] | None:
+        if pywrapcp is None or routing_enums_pb2 is None:
+            return None
+
         manager = pywrapcp.RoutingIndexManager(
             self.num_nodes,
             self.num_vehicles,
@@ -197,7 +200,7 @@ class CVRPTWSolver:
                     v_node = manager.IndexToNode(to_index)
                     base_dur = self.duration_matrix[u][v_node]
                     dwell = self.stops[u - 1].service_duration_sec if u > 0 else 0
-                    return int(round((base_dur * penalty) + dwell))
+                    return round((base_dur * penalty) + dwell)
                 return callback
 
             cb = routing.RegisterTransitCallback(create_duration_callback(speed_penalty))
@@ -231,22 +234,22 @@ class CVRPTWSolver:
                 def cost_callback(from_index: int, to_index: int) -> int:
                     u = manager.IndexToNode(from_index)
                     v_node = manager.IndexToNode(to_index)
-                    return int(round(self.distance_matrix[u][v_node] * rate))
+                    return round(self.distance_matrix[u][v_node] * rate)
                 return cost_callback
 
             cost_cb = routing.RegisterTransitCallback(create_cost_callback(rate_per_meter_paise))
             routing.SetArcCostEvaluatorOfVehicle(cost_cb, v_idx)
-            routing.SetFixedCostOfVehicle(int(round(v.fixed_dispatch_cost * 100)), v_idx)
+            routing.SetFixedCostOfVehicle(round(v.fixed_dispatch_cost * 100), v_idx)
 
         # 4. Capacity Dimension (Payload kg)
         def demand_callback(from_index: int) -> int:
             u = manager.IndexToNode(from_index)
             if u == 0:
                 return 0
-            return int(round(self.stops[u - 1].demand_kg))
+            return round(self.stops[u - 1].demand_kg)
 
         demand_cb_index = routing.RegisterUnaryTransitCallback(demand_callback)
-        capacities = [int(round(v.payload_capacity_kg)) for v in self.fleet]
+        capacities = [round(v.payload_capacity_kg) for v in self.fleet]
         routing.AddDimensionWithVehicleCapacity(
             demand_cb_index,
             0,

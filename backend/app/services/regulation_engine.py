@@ -15,7 +15,7 @@ logger = logging.getLogger("routeopt.regulations")
 DATA_FILE_PATH = os.path.join(os.path.dirname(os.path.dirname(__file__)), "data", "regulations.json")
 
 class RegionalRegulationEngine:
-    _cached_data = None
+    _cached_data: dict[str, Any] | None = None
 
     @classmethod
     def _load_data(cls) -> dict[str, Any]:
@@ -23,7 +23,8 @@ class RegionalRegulationEngine:
             if os.path.exists(DATA_FILE_PATH):
                 try:
                     with open(DATA_FILE_PATH, "r", encoding="utf-8") as f:
-                        cls._cached_data = json.load(f)
+                        data = json.load(f)
+                        cls._cached_data = data if isinstance(data, dict) else {}
                 except Exception as e:
                     logger.error(f"Failed to load regulations.json: {e}")
                     cls._cached_data = {}
