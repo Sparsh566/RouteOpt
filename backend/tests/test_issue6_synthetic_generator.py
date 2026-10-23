@@ -24,10 +24,10 @@ def test_generator_stop_counts_and_fleet_mixes():
     for n in [10, 25, 50]:
         inst = generate_instance(seed=42, stop_count=n, region="PUNE_PMC", fleet_mix="all_vans")
         assert len(inst["stops"]) == n
-        assert all(v["vehicle_class"] == "DELIVERY_VAN" for v in inst["fleet"])
+        assert all(v["vehicle_class"] == "van" for v in inst["fleet"])
 
     inst_trucks = generate_instance(seed=42, stop_count=10, region="MUMBAI_MMRDA", fleet_mix="all_trucks")
-    assert all(v["vehicle_class"] == "FREIGHT_TRUCK" for v in inst_trucks["fleet"])
+    assert all(v["vehicle_class"] == "truck" for v in inst_trucks["fleet"])
 
 def test_generator_file_saving(tmp_path):
     """Verifies that instances save as valid JSON in target directory."""
