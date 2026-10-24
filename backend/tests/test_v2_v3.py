@@ -57,23 +57,28 @@ def test_pune_pmc_regulations():
     assert "Pune PMC Evening Peak" in name
 
 def test_nagpur_nmc_regulations():
-    engine = RegionalRegulationEngine("NAGPUR_NMC")
-    assert engine.violation_fine_inr == 10000.0
-    assert engine.bridge_gvw_limit_tonnes == 5.0
-
-    # 09:30 AM = 34200s (inside Nagpur morning ban 08:30 - 11:30)
-    is_banned, name = engine.check_time_in_no_entry_window(34200)
-    assert is_banned is True
-    assert "Nagpur NMC Morning Peak" in name
-
-    # 14:00 PM (2:00 PM) = 50400s (open window)
-    is_banned, name = engine.check_time_in_no_entry_window(50400)
+    # Evaluated today (valid_until: 2026-04-07 is past): rule is expired and ignored by engine
+    engine_today = RegionalRegulationEngine("NAGPUR_NMC")
+    assert engine_today.violation_fine_inr == 10000.0
+    assert engine_today.bridge_gvw_limit_tonnes == 5.0
+    is_banned, name = engine_today.check_time_in_no_entry_window(34200)
     assert is_banned is False
+    assert "expired, verify with traffic police" in name.lower()
 
-    # 19:00 PM (7:00 PM) = 68400s (inside Nagpur evening ban 17:30 - 21:00)
-    is_banned, name = engine.check_time_in_no_entry_window(68400)
+    summary = engine_today.get_guideline_summary()
+    assert summary["rules"][0]["status"] == "expired, verify with traffic police"
+    assert summary["rules"][0]["is_expired"] is True
+
+    # Evaluated before valid_until date (e.g. 2026-04-01): rule 06:00-22:00 is active
+    engine_active = RegionalRegulationEngine("NAGPUR_NMC", as_of_date="2026-04-01")
+    # 09:30 AM = 34200s (inside 06:00 - 22:00 ban)
+    is_banned, name = engine_active.check_time_in_no_entry_window(34200)
     assert is_banned is True
-    assert "Nagpur NMC Evening Peak" in name
+    assert "Nagpur City Roads" in name
+
+    # 23:00 PM = 82800s (outside 06:00 - 22:00 ban)
+    is_banned, name = engine_active.check_time_in_no_entry_window(82800)
+    assert is_banned is False
 
 def test_flyover_height_clearance():
     engine = RegionalRegulationEngine()

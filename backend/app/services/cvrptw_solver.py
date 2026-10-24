@@ -14,6 +14,7 @@ except (ImportError, Exception):
 
 import logging
 import time
+from datetime import date
 from typing import Any
 
 from backend.app.models.fleet_v2 import (
@@ -54,7 +55,8 @@ class CVRPTWSolver:
         fleet: list[CommercialVehicleSpec],
         enforce_guidelines: bool = True,
         departure_time_sec: int = 30600,  # Default: 08:30:00 (30600s since midnight)
-        region: str = "MUMBAI_MMRDA"
+        region: str = "MUMBAI_MMRDA",
+        as_of_date: date | str | None = None
     ):
         self.distance_matrix = distance_matrix
         self.duration_matrix = duration_matrix
@@ -64,7 +66,8 @@ class CVRPTWSolver:
         self.enforce_guidelines = enforce_guidelines
         self.departure_time_sec = departure_time_sec
         self.region = region
-        self.reg_engine = RegionalRegulationEngine(region)
+        self.as_of_date = as_of_date
+        self.reg_engine = RegionalRegulationEngine(region, as_of_date=as_of_date)
 
         # Auto-derive restricted urban core status from stop coordinates if not explicitly set
         for s in self.stops:

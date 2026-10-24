@@ -1,37 +1,121 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "RouteOpt Regional Commercial Vehicle Regulations Database",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "regions": {
     "MUMBAI_MMRDA": {
       "region_id": "MUMBAI_MMRDA",
       "name": "Greater Mumbai & MMRDA Metropolitan Area",
       "jurisdiction": "Mumbai Traffic Police & MMRDA",
       "status": "demo",
+      "heavy_definition": "unspecified in sources",
+      "vans_exempt_note": "labeled demo assumption",
       "citations": [
-        "Mumbai Traffic Branch advisory guidelines (Demo Model for municipal HGV restrictions)"
+        "Mumbai Traffic Branch notifications & news reports (effective 2026-02-01, source_type: news)"
       ],
       "time_restrictions": [
         {
-          "name": "Morning Peak Heavy Goods Vehicle Restriction",
+          "name": "Morning Peak Commercial Vehicle Window",
           "start_sec": 28800,
-          "end_sec": 41400,
+          "end_sec": 39600,
           "start_time_str": "08:00 AM",
-          "end_time_str": "11:30 AM",
-          "applies_to": ["truck"],
-          "exempt": ["van"],
-          "source_reference": "Mumbai Traffic Advisory (Demo Model)",
+          "end_time_str": "11:00 AM",
+          "scope": "citywide",
+          "effective": "2026-02-01",
+          "source_type": "news",
+          "heavy_definition": "unspecified in sources",
+          "applies_to": [
+            "truck"
+          ],
+          "exempt": [
+            "van"
+          ],
+          "vans_exempt_label": "labeled demo assumption",
+          "exemptions": [
+            "essential_goods",
+            "emergency",
+            "school_buses",
+            "government_buses"
+          ],
+          "source_reference": "Mumbai Traffic Police Notice (effective 2026-02-01, source_type news)",
           "status": "demo"
         },
         {
-          "name": "Evening Peak Severe Heavy Goods Vehicle Restriction",
+          "name": "Evening Peak Commercial Vehicle Window",
           "start_sec": 61200,
-          "end_sec": 77400,
+          "end_sec": 75600,
           "start_time_str": "05:00 PM",
-          "end_time_str": "09:30 PM",
-          "applies_to": ["truck"],
-          "exempt": ["van"],
-          "source_reference": "Mumbai Traffic Advisory (Demo Model)",
+          "end_time_str": "09:00 PM",
+          "scope": "citywide",
+          "effective": "2026-02-01",
+          "source_type": "news",
+          "heavy_definition": "unspecified in sources",
+          "applies_to": [
+            "truck"
+          ],
+          "exempt": [
+            "van"
+          ],
+          "vans_exempt_label": "labeled demo assumption",
+          "exemptions": [
+            "essential_goods",
+            "emergency",
+            "school_buses",
+            "government_buses"
+          ],
+          "source_reference": "Mumbai Traffic Police Notice (effective 2026-02-01, source_type news)",
+          "status": "demo"
+        },
+        {
+          "name": "South Mumbai Extended Commercial Vehicle Restriction",
+          "start_sec": 25200,
+          "end_sec": 86400,
+          "start_time_str": "07:00 AM",
+          "end_time_str": "12:00 AM",
+          "scope": "SOUTH_MUMBAI",
+          "effective": "2026-02-01",
+          "source_type": "news",
+          "heavy_definition": "unspecified in sources",
+          "applies_to": [
+            "truck"
+          ],
+          "exempt": [
+            "van"
+          ],
+          "vans_exempt_label": "labeled demo assumption",
+          "exemptions": [
+            "essential_goods",
+            "emergency",
+            "school_buses",
+            "government_buses"
+          ],
+          "polygon": [],
+          "source_reference": "South Mumbai Traffic Order (effective 2026-02-01, source_type news, no polygon)",
+          "status": "demo"
+        },
+        {
+          "name": "Eastern Freeway 24-Hour Commercial Vehicle Ban",
+          "start_sec": 0,
+          "end_sec": 86400,
+          "start_time_str": "12:00 AM",
+          "end_time_str": "12:00 AM (+24h)",
+          "scope": "EASTERN_FREEWAY",
+          "effective": "2026-02-01",
+          "source_type": "news",
+          "heavy_definition": "unspecified in sources",
+          "applies_to": [
+            "truck",
+            "commercial_goods"
+          ],
+          "exempt": [
+            "public_buses"
+          ],
+          "exemptions": [
+            "public_buses",
+            "emergency"
+          ],
+          "polygon": [],
+          "source_reference": "Eastern Freeway Traffic Guidelines (24h ban except public buses, no polygon)",
           "status": "demo"
         }
       ],
@@ -44,7 +128,7 @@
       },
       "penalties": {
         "violation_fine_inr": 20000.0,
-        "legal_basis": "Motor Vehicles Act Demo Rating",
+        "legal_basis": "Motor Vehicles Act, 1988",
         "status": "demo"
       },
       "restricted_zones": [
@@ -65,6 +149,8 @@
       "name": "Pune Municipal Corporation Urban Core",
       "jurisdiction": "Pune City Traffic Branch & PMC",
       "status": "demo",
+      "heavy_definition": "unspecified in sources",
+      "vans_exempt_note": "labeled demo assumption",
       "citations": [
         "Pune City Police Traffic Advisory (Demo Model based on 2023 arterial truck ban draft)"
       ],
@@ -75,8 +161,18 @@
           "end_sec": 43200,
           "start_time_str": "09:00 AM",
           "end_time_str": "12:00 PM",
-          "applies_to": ["truck"],
-          "exempt": ["van"],
+          "scope": "citywide",
+          "applies_to": [
+            "truck"
+          ],
+          "exempt": [
+            "van"
+          ],
+          "vans_exempt_label": "labeled demo assumption",
+          "exemptions": [
+            "essential_goods",
+            "emergency"
+          ],
           "source_reference": "PMC Demo Notification",
           "status": "demo"
         },
@@ -86,8 +182,18 @@
           "end_sec": 73800,
           "start_time_str": "04:30 PM",
           "end_time_str": "08:30 PM",
-          "applies_to": ["truck"],
-          "exempt": ["van"],
+          "scope": "citywide",
+          "applies_to": [
+            "truck"
+          ],
+          "exempt": [
+            "van"
+          ],
+          "vans_exempt_label": "labeled demo assumption",
+          "exemptions": [
+            "essential_goods",
+            "emergency"
+          ],
           "source_reference": "PMC Demo Notification",
           "status": "demo"
         }
@@ -109,10 +215,10 @@
           "zone_id": "PUNE_CENTRAL_CORE",
           "name": "Pune Swargate & Shivajinagar Urban Core",
           "polygon": [
-            [18.50, 73.82],
+            [18.5, 73.82],
             [18.55, 73.82],
             [18.55, 73.88],
-            [18.50, 73.88]
+            [18.5, 73.88]
           ]
         }
       ]
@@ -121,32 +227,60 @@
       "region_id": "NAGPUR_NMC",
       "name": "Nagpur Municipal Corporation Area",
       "jurisdiction": "Nagpur City Police & NMC",
-      "status": "demo",
+      "status": "needs_check",
+      "heavy_definition": "unspecified in sources",
+      "vans_exempt_note": "labeled demo assumption",
       "citations": [
-        "Nagpur City Police Traffic Notification (Demo Model)"
+        "Nagpur City Police Traffic Notification (valid_until: 2026-04-07, status: needs_check)"
       ],
       "time_restrictions": [
         {
-          "name": "Nagpur NMC Morning Peak HCV Ban",
-          "start_sec": 30600,
-          "end_sec": 41400,
-          "start_time_str": "08:30 AM",
-          "end_time_str": "11:30 AM",
-          "applies_to": ["truck"],
-          "exempt": ["van"],
-          "source_reference": "NMC Demo Notification",
-          "status": "demo"
+          "name": "Nagpur City Roads Commercial Vehicle Restriction",
+          "start_sec": 21600,
+          "end_sec": 79200,
+          "start_time_str": "06:00 AM",
+          "end_time_str": "10:00 PM",
+          "scope": "listed_city_roads",
+          "routing_notes": "trucks routed via Outer Ring Road",
+          "applies_to": [
+            "truck"
+          ],
+          "exempt": [
+            "van"
+          ],
+          "vans_exempt_label": "labeled demo assumption",
+          "exemptions": [
+            "essential_goods",
+            "government_duty"
+          ],
+          "valid_until": "2026-04-07",
+          "status": "needs_check",
+          "source_reference": "Nagpur City Police Notification (valid_until 2026-04-07, no renewal found)",
+          "heavy_definition": "unspecified in sources"
         },
         {
-          "name": "Nagpur NMC Evening Peak HCV Ban",
-          "start_sec": 63000,
-          "end_sec": 75600,
-          "start_time_str": "05:30 PM",
-          "end_time_str": "09:00 PM",
-          "applies_to": ["truck"],
-          "exempt": ["van"],
-          "source_reference": "NMC Demo Notification",
-          "status": "demo"
+          "name": "Ganesh Visarjan Dated Commercial Vehicle Ban Override",
+          "start_sec": 21600,
+          "end_sec": 79200,
+          "start_datetime": "2026-09-25T06:00:00",
+          "end_datetime": "2026-09-27T06:00:00",
+          "start_time_str": "2026-09-25 06:00",
+          "end_time_str": "2026-09-27 06:00",
+          "scope": "citywide_dated_override",
+          "applies_to": [
+            "truck"
+          ],
+          "exempt": [
+            "van"
+          ],
+          "vans_exempt_label": "labeled demo assumption",
+          "exemptions": [
+            "essential_goods",
+            "emergency"
+          ],
+          "valid_until": "2026-09-27",
+          "status": "expired",
+          "source_reference": "Ganesh Visarjan Traffic Order (2026-09-25 06:00 to 2026-09-27 06:00)"
         }
       ],
       "infrastructure_limits": {

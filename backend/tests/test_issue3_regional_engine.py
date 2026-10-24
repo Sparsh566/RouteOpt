@@ -133,7 +133,7 @@ async def test_regional_rules_enforced_nagpur_fine():
         depot=depot,
         stops=stops,
         fleet=fleet,
-        departure_time_iso="2026-10-09T08:30:00+05:30",
+        departure_time_iso="2026-04-01T08:30:00+05:30",
         parameters={"region": "NAGPUR_NMC"}
     )
     res = await AISimulationEngine.run_scenario(req)

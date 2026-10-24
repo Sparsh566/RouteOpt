@@ -1023,19 +1023,9 @@ function updateClockDisplay(hourVal) {
     const isPune = state.selectedRegion === "PUNE_PMC";
 
     if (isNagpur) {
-        if (hourVal >= 8.5 && hourVal <= 11.5) {
-            statusBox.className = "rule-status-box status-restricted";
-            statusTitle.textContent = "NMC MORNING PEAK BAN ACTIVE (08:30 AM - 11:30 AM)";
-            statusDesc.textContent = "Heavy freight trucks (Tata 407, HCVs) banned across central markets (Sitabuldi, Itwari, Mahal). Fine ₹10,000. Vans (Tata Ace) allowed.";
-        } else if (hourVal >= 17.5 && hourVal <= 21.0) {
-            statusBox.className = "rule-status-box status-restricted";
-            statusTitle.textContent = "NMC EVENING PEAK BAN ACTIVE (05:30 PM - 09:00 PM)";
-            statusDesc.textContent = "Evening commercial peak ban across Central Avenue and commercial core. Delivery vans under 3.5 tonnes GVW permitted.";
-        } else {
-            statusBox.className = "rule-status-box status-open";
-            statusTitle.textContent = "NMC CORRIDORS OPEN (UNRESTRICTED)";
-            statusDesc.textContent = "Both delivery vans and heavy freight trucks permitted on designated Nagpur arterial roads.";
-        }
+        statusBox.className = "rule-status-box status-restricted";
+        statusTitle.textContent = "NMC NOTIFICATION EXPIRED (VERIFY WITH TRAFFIC POLICE)";
+        statusDesc.textContent = "Nagpur commercial vehicle restriction (06:00 - 22:00) valid until 2026-04-07 (no renewal found). Status: expired, verify with traffic police. Heavy freight trucks routed via Outer Ring Road; rule ignored by engine until verified. Ganesh Visarjan override (2026-09-25 to 2026-09-27) is also expired.";
     } else if (isPune) {
         if (hourVal >= 9.0 && hourVal <= 12.0) {
             statusBox.className = "rule-status-box status-restricted";
@@ -1051,18 +1041,18 @@ function updateClockDisplay(hourVal) {
             statusDesc.textContent = "Both delivery vans and heavy freight trucks are permitted on all designated Pune commercial arterial corridors.";
         }
     } else {
-        if (hourVal >= 8.0 && hourVal <= 11.5) {
+        if (hourVal >= 8.0 && hourVal <= 11.0) {
             statusBox.className = "rule-status-box status-restricted";
-            statusTitle.textContent = "MORNING NO-ENTRY ACTIVE (08:00 AM - 11:30 AM)";
-            statusDesc.textContent = "Heavy freight trucks (Tata 407) are banned in city limits. Illegal entry risks Rs 20,000 fine. Small delivery vans (Tata Ace) are allowed.";
-        } else if (hourVal >= 17.0 && hourVal <= 21.5) {
+            statusTitle.textContent = "MORNING NO-ENTRY ACTIVE (08:00 AM - 11:00 AM)";
+            statusDesc.textContent = "Citywide peak ban on heavy vehicles (08:00-11:00, effective 2026-02-01). South Mumbai restriction 07:00-24:00 & Eastern Freeway 24h ban. Heavy definition: unspecified in sources; vans exempt only as labeled demo assumption. Exempt: essential goods, emergency, school/govt buses.";
+        } else if (hourVal >= 17.0 && hourVal <= 21.0) {
             statusBox.className = "rule-status-box status-restricted";
-            statusTitle.textContent = "EVENING NO-ENTRY ACTIVE (05:00 PM - 09:30 PM)";
-            statusDesc.textContent = "Severe peak ban on heavy goods vehicles. Only small delivery vans under 3.5 tonnes GVW are permitted.";
+            statusTitle.textContent = "EVENING NO-ENTRY ACTIVE (05:00 PM - 09:00 PM)";
+            statusDesc.textContent = "Citywide evening ban on heavy vehicles (17:00-21:00, effective 2026-02-01). Heavy definition: unspecified in sources; vans exempt only as labeled demo assumption. Exempt: essential goods, emergency, school/govt buses.";
         } else {
             statusBox.className = "rule-status-box status-open";
             statusTitle.textContent = "ALL ROADS OPEN (UNRESTRICTED)";
-            statusDesc.textContent = "Both delivery vans and heavy freight trucks are permitted on all designated commercial arterial roads.";
+            statusDesc.textContent = "Citywide corridors open outside 08:00-11:00 & 17:00-21:00 (Note: Eastern Freeway 24h ban & South Mumbai 07:00-24:00 apply). Heavy definition unspecified; vans exempt as demo assumption.";
         }
     }
 }
@@ -2031,7 +2021,7 @@ function refreshRegulatoryLayers() {
     let barriers = MUMBAI_BARRIERS;
     let geofenceTitle = "Greater Mumbai No-Entry Zone";
     let authority = "Mumbai Traffic Police (Sec 115 & 116 MVA)";
-    let peakHours = "08:00 AM - 11:30 AM & 05:00 PM - 09:30 PM";
+    let peakHours = "08:00 AM - 11:00 AM & 05:00 PM - 09:00 PM (South Mumbai: 07:00-24:00; Eastern Freeway: 24h)";
     let fineText = "Fine Risk: Rs 20,000 + Seizure";
 
     if (isNagpur) {
@@ -2039,7 +2029,7 @@ function refreshRegulatoryLayers() {
         barriers = NAGPUR_BARRIERS;
         geofenceTitle = "Nagpur Municipal Corporation (NMC) Core No-Entry Zone";
         authority = "Nagpur Municipal Corporation & City Traffic Police (Sec 115 MVA)";
-        peakHours = "08:30 AM - 11:30 AM & 05:30 PM - 09:00 PM";
+        peakHours = "06:00 AM - 10:00 PM (Expired 2026-04-07: verify with traffic police. Outer Ring Road bypass)";
         fineText = "Fine Risk: Rs 10,000 + Seizure";
     } else if (isPune) {
         geofenceCoords = PUNE_GEOFENCE_COORDS;
@@ -2148,14 +2138,14 @@ function updateRulesTabContent() {
             <h2>Nagpur NMC Commercial Transport Regulations</h2>
             <p class="rules-subtitle">Reference guide for drivers and dispatchers in Nagpur Metropolitan Area</p>
             
-            <div class="rule-box">
-                <h3>1. Heavy Commercial Vehicle Peak-Hour No-Entry</h3>
-                <p>Under Section 115 of the Motor Vehicles Act, heavy goods trucks (such as Tata 407, Eicher Pro, and multi-axle trucks) are prohibited from entering central Nagpur commercial markets (Sitabuldi, Mahal, Itwari, Gandhibagh, Central Avenue) during peak traffic hours:</p>
+            <div class="rule-box" style="border-left: 4px solid #f59e0b;">
+                <h3>1. Listed City Roads Commercial Vehicle Restriction (Status: Expired / Needs Check)</h3>
+                <p><strong>Validity Check:</strong> Notification valid until <strong>2026-04-07</strong> with status <em>needs_check (no renewal found)</em>. Any rule whose valid_until is before today is ignored by the engine and displayed as <strong>expired, verify with traffic police</strong>.</p>
                 <ul>
-                    <li><strong>Morning Window:</strong> 08:30 AM to 11:30 AM</li>
-                    <li><strong>Evening Window:</strong> 05:30 PM to 09:00 PM</li>
-                    <li><strong>Vehicles Exempt:</strong> Small delivery vans under 3.5 tonnes GVW (such as Tata Ace, Mahindra Bolero Maxx, Ashok Leyland Dost).</li>
-                    <li><strong>Violation Penalty:</strong> Minimum fine of ₹10,000 and vehicle seizure.</li>
+                    <li><strong>Operating Window:</strong> 06:00 AM to 10:00 PM on listed city roads.</li>
+                    <li><strong>Routing Policy:</strong> Heavy freight trucks routed via Outer Ring Road bypass.</li>
+                    <li><strong>Exemptions:</strong> Essential goods and government duty vehicles.</li>
+                    <li><strong>Dated Override:</strong> Ganesh Visarjan (2026-09-25 06:00 to 2026-09-27 06:00) — status: expired.</li>
                 </ul>
             </div>
 
@@ -2198,27 +2188,32 @@ function updateRulesTabContent() {
     } else {
         container.innerHTML = `
             <h2>Mumbai Regional Commercial Transport Rules</h2>
-            <p class="rules-subtitle">Reference guide for drivers and dispatchers in Greater Mumbai (MMRDA)</p>
+            <p class="rules-subtitle">Reference guide for drivers and dispatchers in Greater Mumbai (MMRDA) — Effective 2026-02-01 (Source Type: News)</p>
             
             <div class="rule-box">
-                <h3>1. Heavy Commercial Vehicle Peak-Hour No-Entry</h3>
-                <p>Under Section 115 and 116 of the Motor Vehicles Act, heavy goods trucks (such as Tata 407, Eicher Pro, and multi-axle trucks) are prohibited from entering urban roads during peak traffic hours:</p>
+                <h3>1. Citywide Commercial Vehicle Peak Windows</h3>
+                <p>Under Mumbai Traffic Police notifications (effective 2026-02-01, source_type: news), heavy commercial vehicles are restricted during citywide peak windows:</p>
                 <ul>
-                    <li><strong>Morning Window:</strong> 08:00 AM to 11:30 AM</li>
-                    <li><strong>Evening Window:</strong> 05:00 PM to 09:30 PM</li>
-                    <li><strong>Vehicles Exempt:</strong> Small delivery vans under 3.5 tonnes GVW (such as Tata Ace, Mahindra Bolero, Ashok Leyland Dost).</li>
-                    <li><strong>Violation Penalty:</strong> Minimum fine of ₹20,000 and vehicle seizure.</li>
+                    <li><strong>Morning Window:</strong> 08:00 AM to 11:00 AM</li>
+                    <li><strong>Evening Window:</strong> 05:00 PM to 09:00 PM</li>
+                    <li><strong>Heavy Definition:</strong> Unspecified in sources.</li>
+                    <li><strong>Van Exemption:</strong> Small delivery vans (Tata Ace) kept exempt only as a labeled demo assumption.</li>
+                    <li><strong>Exemptions:</strong> Essential goods, emergency services, school buses, and government buses.</li>
+                    <li><strong>Violation Penalty:</strong> ₹20,000 fine under MVA.</li>
                 </ul>
             </div>
 
             <div class="rule-box">
-                <h3>2. Flyover Height Barrier Limits</h3>
-                <p>Most urban flyovers have overhead steel gantries fixed at a height of <strong>2.5 meters</strong>. Freight trucks exceeding 2.5 meters must take ground-level junction roads, which adds roughly 30% to travel time.</p>
+                <h3>2. South Mumbai & Eastern Freeway Restrictions (No Polygons)</h3>
+                <ul>
+                    <li><strong>South Mumbai Restriction:</strong> 07:00 AM to 24:00 (12:00 AM) commercial restriction with no polygon.</li>
+                    <li><strong>Eastern Freeway Ban:</strong> 24-hour ban on commercial goods vehicles (all day) except public buses, as a separate rule with no polygon.</li>
+                </ul>
             </div>
 
             <div class="rule-box">
-                <h3>3. Bridge Weight Load Limits</h3>
-                <p>Older arterial bridges restrict vehicles weighing more than <strong>7.5 Tonnes Gross Vehicle Weight</strong>. Heavy freight must take the peripheral bypass corridors.</p>
+                <h3>3. Corridor Height & Weight Load Limits</h3>
+                <p>Flyovers maintain a clearance gantry of <strong>2.5 meters</strong>. Older arterial bridges restrict vehicles exceeding <strong>7.5 Tonnes Gross Vehicle Weight</strong>.</p>
             </div>
         `;
     }

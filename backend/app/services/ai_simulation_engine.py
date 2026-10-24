@@ -72,10 +72,11 @@ STRICT NUMERICAL AND DECISION BOUNDARIES:
         params = request.parameters
         custom_problem_text = request.custom_situation_text
         region = params.get("region", "MUMBAI_MMRDA")
-        reg_engine = RegionalRegulationEngine(region)
+        departure_dt, departure_sec = parse_departure_datetime(request.departure_time_iso)
+        as_of_date = departure_dt.date() if departure_dt else None
+        reg_engine = RegionalRegulationEngine(region, as_of_date=as_of_date)
 
         # 1. Dynamically compute baseline route and metrics
-        departure_dt, departure_sec = parse_departure_datetime(request.departure_time_iso)
         all_coords = [[request.depot.lat, request.depot.lon]] + [[s.lat, s.lon] for s in request.stops]
         dist_matrix, base_dur_matrix, _ = await OSRMService.get_matrices(all_coords)
 
@@ -87,7 +88,8 @@ STRICT NUMERICAL AND DECISION BOUNDARIES:
             fleet=request.fleet,
             enforce_guidelines=True,
             departure_time_sec=departure_sec,
-            region=region
+            region=region,
+            as_of_date=as_of_date
         )
         baseline_solution = await asyncio.to_thread(baseline_solver.solve)
 
@@ -130,7 +132,8 @@ STRICT NUMERICAL AND DECISION BOUNDARIES:
                     duration_matrix=base_dur_matrix,
                     departure_time_sec=departure_sec,
                     region=region,
-                    enforce_guidelines=True
+                    enforce_guidelines=True,
+                    as_of_date=as_of_date
                 )
                 val_report = validator.validate(
                     routes=baseline_solution["routes"],

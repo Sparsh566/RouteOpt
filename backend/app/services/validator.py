@@ -9,6 +9,7 @@ Independently verifies route feasibility and compliance with hard constraints:
 """
 
 import logging
+from datetime import date
 from typing import Any, Literal
 
 from backend.app.models.fleet_v2 import (
@@ -46,7 +47,8 @@ class RouteValidator:
         duration_matrix: list[list[float]],
         departure_time_sec: int = 30600,
         region: str = "MUMBAI_MMRDA",
-        enforce_guidelines: bool = True
+        enforce_guidelines: bool = True,
+        as_of_date: date | str | None = None
     ):
         self.depot = depot
         self.stops = stops
@@ -56,7 +58,8 @@ class RouteValidator:
         self.departure_time_sec = departure_time_sec
         self.region = region
         self.enforce_guidelines = enforce_guidelines
-        self.reg_engine = RegionalRegulationEngine(region)
+        self.as_of_date = as_of_date
+        self.reg_engine = RegionalRegulationEngine(region, as_of_date=as_of_date)
 
         # Auto-derive restricted urban core status from stop coordinates if not explicitly set
         for s in self.stops:

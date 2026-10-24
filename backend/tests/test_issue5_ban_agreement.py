@@ -12,18 +12,18 @@ def test_shared_ban_function_peak_windows():
     """Verify is_peak_ban_active correctly identifies ban and unrestricted windows."""
     engine = RegionalRegulationEngine("MUMBAI_MMRDA")
 
-    # Mumbai morning ban: 08:00 - 11:30 (28800s - 41400s)
+    # Mumbai morning ban: 08:00 - 11:00 (28800s - 39600s)
     assert not engine.is_peak_ban_active(28799)   # 07:59:59 AM (unrestricted)
     assert engine.is_peak_ban_active(28800)       # 08:00:00 AM (banned)
     assert engine.is_peak_ban_active(36000)       # 10:00:00 AM (banned)
-    assert engine.is_peak_ban_active(41400)       # 11:30:00 AM (banned boundary)
-    assert not engine.is_peak_ban_active(41401)   # 11:30:01 AM (unrestricted)
+    assert engine.is_peak_ban_active(39600)       # 11:00:00 AM (banned boundary)
+    assert not engine.is_peak_ban_active(39601)   # 11:00:01 AM (unrestricted)
 
-    # Mumbai evening ban: 17:00 - 21:30 (61200s - 77400s)
+    # Mumbai evening ban: 17:00 - 21:00 (61200s - 75600s)
     assert not engine.is_peak_ban_active(61199)   # 04:59:59 PM (unrestricted)
     assert engine.is_peak_ban_active(61200)       # 05:00:00 PM (banned)
-    assert engine.is_peak_ban_active(77400)       # 09:30:00 PM (banned boundary)
-    assert not engine.is_peak_ban_active(77401)   # 09:30:01 PM (unrestricted)
+    assert engine.is_peak_ban_active(75600)       # 09:00:00 PM (banned boundary)
+    assert not engine.is_peak_ban_active(75601)   # 09:00:01 PM (unrestricted)
 
 
 def test_ortools_and_greedy_agree_on_service_overlapping_ban():
