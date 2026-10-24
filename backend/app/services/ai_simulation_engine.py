@@ -144,7 +144,8 @@ STRICT NUMERICAL AND DECISION BOUNDARIES:
                 truck_present = any(v.vehicle_class == VehicleClass.FREIGHT_TRUCK for v in request.fleet)
                 for s in request.stops:
                     if s.is_in_restricted_urban_core and truck_present:
-                        is_banned, window_name = reg_engine.check_time_in_no_entry_window(s.time_window_start_sec)
+                        norm_start, _ = s.get_normalized_window(departure_sec, request.depot.operating_hours_sec)
+                        is_banned, window_name = reg_engine.check_time_in_no_entry_window(norm_start)
                         if is_banned:
                             rule_errors.append({
                                 "vehicle_id": next((v.vehicle_id for v in request.fleet if v.vehicle_class == VehicleClass.FREIGHT_TRUCK), "TRUCK-01"),

@@ -8,6 +8,11 @@ class VehicleClass(str, Enum):
     DELIVERY_VAN = "van"       # Light Commercial Vehicle (LCV: e.g. Tata Ace, Bolero Maxi Truck)
     FREIGHT_TRUCK = "truck"    # Medium/Heavy Commercial Vehicle (MCV/HCV: e.g. Tata 407, BharatBenz)
 
+class TimeWindowMode(str, Enum):
+    AUTO = "auto"              # Guess based on start < 14400 and end <= operating_hours
+    RELATIVE = "relative"      # Offsets relative to vehicle shift departure time
+    ABSOLUTE = "absolute"      # Exact seconds since midnight (00:00:00)
+
 class CommercialVehicleSpec(BaseModel):
     vehicle_id: str = Field(..., description="Unique vehicle ID or registration")
     name: str = Field(default="Commercial Vehicle")
@@ -28,9 +33,48 @@ class DeliveryStop(BaseModel):
     time_window_start_sec: int = Field(default=0, description="Earliest delivery time in seconds (seconds since midnight or shift seconds)")
     time_window_end_sec: int = Field(default=43200, description="Latest cutoff delivery time in seconds (seconds since midnight or shift seconds)")
     service_duration_sec: int = Field(default=300, description="Unloading dock dwell time (default 5m)")
+    window_mode: TimeWindowMode | Literal["auto", "relative", "absolute"] = Field(
+        default=TimeWindowMode.AUTO,
+        description="Time window interpretation: 'auto' (heuristic), 'relative' (shift offset), 'absolute' (seconds since midnight)"
+    )
     is_in_restricted_urban_core: bool = Field(default=False, description="Inside municipal truck no-entry zone")
     requires_flyover: bool = Field(default=False, description="Requires flyover transit (checks overhead clearance gantry)")
     max_access_gvw_tonnes: float | None = Field(default=None, description="Bridge or corridor maximum GVW limit in metric tonnes")
+
+    def get_normalized_window(self, departure_time_sec: int, operating_hours_sec: int) -> tuple[int, int]:
+        """
+        Normalizes delivery time windows into absolute seconds since midnight.
+        - 'relative': start/end treated as relative offsets added to departure_time_sec.
+        - 'absolute': start/end treated directly as seconds since midnight.
+        - 'auto': backward-compatible heuristic (start < 14400 and end <= operating_hours -> relative, else absolute).
+        """
+        mode = getattr(self, "window_mode", TimeWindowMode.AUTO)
+        mode_val = mode.value if hasattr(mode, "value") else str(mode)
+
+        if mode_val == TimeWindowMode.RELATIVE:
+            w_start = departure_time_sec + self.time_window_start_sec
+            w_end = departure_time_sec + min(self.time_window_end_sec, operating_hours_sec)
+            return (int(w_start), int(w_end))
+
+        if mode_val == TimeWindowMode.ABSOLUTE:
+            return (int(self.time_window_start_sec), int(self.time_window_end_sec))
+
+        # Auto heuristic
+        shift_end = departure_time_sec + operating_hours_sec
+        if self.time_window_start_sec == 0:
+            w_start = departure_time_sec
+            if self.time_window_end_sec < operating_hours_sec:
+                w_end = departure_time_sec + self.time_window_end_sec
+            else:
+                w_end = shift_end
+        elif self.time_window_start_sec < 14400 and self.time_window_end_sec <= operating_hours_sec:
+            w_start = departure_time_sec + self.time_window_start_sec
+            w_end = departure_time_sec + self.time_window_end_sec
+        else:
+            w_start = self.time_window_start_sec
+            w_end = self.time_window_end_sec
+
+        return (int(w_start), int(w_end))
 
 class DepotLocation(BaseModel):
     depot_id: str = Field(default="DEPOT-01")
