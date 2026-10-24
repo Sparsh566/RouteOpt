@@ -42,29 +42,6 @@ async def test_baseline_is_dynamic_not_hardcoded():
         )
     ]
 
-    fleet_two_vans = [
-        CommercialVehicleSpec(
-            vehicle_id="VAN-01",
-            name="Tata Ace 1",
-            vehicle_class=VehicleClass.DELIVERY_VAN,
-            payload_capacity_kg=1200,
-            gross_vehicle_weight_tonnes=2.2,
-            height_meters=1.9,
-            fixed_dispatch_cost=1000.0,
-            running_cost_per_km=15.0
-        ),
-        CommercialVehicleSpec(
-            vehicle_id="VAN-02",
-            name="Tata Ace 2",
-            vehicle_class=VehicleClass.DELIVERY_VAN,
-            payload_capacity_kg=1200,
-            gross_vehicle_weight_tonnes=2.2,
-            height_meters=1.9,
-            fixed_dispatch_cost=1000.0,
-            running_cost_per_km=15.0
-        )
-    ]
-
     # Run scenario with 1 stop
     req1 = SimulationScenarioRequest(
         scenario_type="URGENT_DELIVERY",

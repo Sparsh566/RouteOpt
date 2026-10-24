@@ -47,6 +47,7 @@ def _sanitize_text(text: str | None) -> str | None:
     return filtered
 
 @router.post("/simulate", response_model=SimulationScenarioResponse)
+@router.post("/v2/simulate", response_model=SimulationScenarioResponse)
 async def run_simulation(payload: SimulationScenarioRequest, request: Request):
     """
     Executes an AI 'What-If' scenario simulation for regulatory breaches, delays, and vehicle swaps.

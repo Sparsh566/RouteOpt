@@ -2,10 +2,11 @@
 FastAPI Controller: Commercial Fleet Route Optimization (Vans & Trucks)
 """
 
+import asyncio
 import time
 from datetime import timedelta
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Query
 
 from backend.app.models.fleet_v2 import (
     OptimizeV2Request,
@@ -13,6 +14,7 @@ from backend.app.models.fleet_v2 import (
     StopVisit,
     VehicleRouteResult,
 )
+from backend.app.services.audit_service import AuditService
 from backend.app.services.cvrptw_solver import CVRPTWSolver
 from backend.app.services.osrm_service import OSRMService
 from backend.app.services.traffic_engine import TrafficEngine
@@ -61,7 +63,8 @@ async def optimize_fleet_routes(payload: OptimizeV2Request):
         region=payload.region
     )
 
-    solution = solver.solve()
+    # Execute CVRPTW solver non-blockingly on worker thread to avoid blocking FastAPI event loop
+    solution = await asyncio.to_thread(solver.solve)
     if not solution:
         raise HTTPException(
             status_code=400,
@@ -178,21 +181,60 @@ async def optimize_fleet_routes(payload: OptimizeV2Request):
     )
 
     solve_ms = (time.perf_counter() - t0) * 1000
+    solver_used = solution.get("solver_used", "Google OR-Tools (CVRPTW)")
+    dist_km = round(total_fleet_dist / 1000.0, 2)
+    dur_hours = round(total_fleet_dur / 3600.0, 2)
+    cost_inr = round(total_fleet_cost, 2)
+
+    # Asynchronously / reliably persist optimization audit record
+    AuditService.record_run(
+        region=payload.region,
+        status=val_report["status"],
+        solver_used=solver_used,
+        stops_count=len(payload.stops),
+        fleet_count=len(payload.fleet),
+        total_distance_km=dist_km,
+        total_duration_hours=dur_hours,
+        total_cost_inr=cost_inr,
+        solve_duration_ms=round(solve_ms, 2),
+        dropped_stops_count=len(solution["dropped_stops"]),
+        compliance_notes=compliance_notes,
+        validation_errors_count=len(val_report["errors"]),
+    )
 
     return OptimizeV2Response(
         status=val_report["status"],
         routes=routes,
         dropped_stops=solution["dropped_stops"],
-        total_fleet_distance_km=round(total_fleet_dist / 1000.0, 2),
-        total_fleet_duration_hours=round(total_fleet_dur / 3600.0, 2),
-        total_fleet_cost_inr=round(total_fleet_cost, 2),
+        total_fleet_distance_km=dist_km,
+        total_fleet_duration_hours=dur_hours,
+        total_fleet_cost_inr=cost_inr,
         fixed_dispatch_cost_inr=round(total_fixed_cost, 2),
         variable_running_cost_inr=round(total_variable_cost, 2),
-        solver_used=solution.get("solver_used", "Google OR-Tools (CVRPTW)"),
+        solver_used=solver_used,
         departure_time=payload.departure_time_iso or "",
         traffic_factor_applied=traffic_factor,
         regulatory_compliance_notes=compliance_notes,
+        regulatory_data_status="simulated_regulatory_model",
         solve_duration_ms=round(solve_ms, 2),
         is_real_road_data=is_real_osrm,
         validation_errors=val_report["errors"]
     )
+
+
+# API Versioning Aliases & History Endpoints
+@router.post("/v2/optimize", response_model=OptimizeV2Response)
+async def optimize_fleet_routes_v2(payload: OptimizeV2Request):
+    """v2 API alias for fleet route optimization."""
+    return await optimize_fleet_routes(payload)
+
+
+@router.get("/history", tags=["Commercial Fleet Optimization"])
+@router.get("/v2/history", tags=["Commercial Fleet Optimization"])
+async def get_route_history(limit: int = Query(default=20, ge=1, le=100)):
+    """Retrieve recent route optimization and compliance audit logs."""
+    return {
+        "status": "SUCCESS",
+        "count": len(AuditService.get_recent_runs(limit=limit)),
+        "history": AuditService.get_recent_runs(limit=limit)
+    }

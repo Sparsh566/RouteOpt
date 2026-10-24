@@ -92,6 +92,59 @@ class OptimizeV2Request(BaseModel):
     apply_traffic_congestion: bool = Field(default=True)
     enforce_government_guidelines: bool = Field(default=True)
 
+    model_config = {
+        "json_schema_extra": {
+            "example": {
+                "depot": {
+                    "depot_id": "DEPOT-01",
+                    "name": "Bhiwandi Central Hub",
+                    "lat": 19.2965,
+                    "lon": 73.0631,
+                    "operating_hours_sec": 43200
+                },
+                "stops": [
+                    {
+                        "stop_id": "STOP-01",
+                        "name": "Dadar Market Retail",
+                        "lat": 19.0178,
+                        "lon": 72.8478,
+                        "demand_kg": 120.0,
+                        "time_window_start_sec": 32400,
+                        "time_window_end_sec": 43200,
+                        "window_mode": "absolute",
+                        "is_in_restricted_urban_core": True
+                    },
+                    {
+                        "stop_id": "STOP-02",
+                        "name": "Bandra Kurla Complex",
+                        "lat": 19.0607,
+                        "lon": 72.8683,
+                        "demand_kg": 80.0,
+                        "time_window_start_sec": 36000,
+                        "time_window_end_sec": 50400,
+                        "window_mode": "absolute"
+                    }
+                ],
+                "fleet": [
+                    {
+                        "vehicle_id": "VAN-01",
+                        "name": "Tata Ace Gold",
+                        "vehicle_class": "van",
+                        "gross_vehicle_weight_tonnes": 1.6,
+                        "height_meters": 1.85,
+                        "payload_capacity_kg": 750.0,
+                        "fixed_dispatch_cost": 300.0,
+                        "running_cost_per_km": 12.0
+                    }
+                ],
+                "departure_time_iso": "2026-10-09T08:30:00+05:30",
+                "region": "MUMBAI_MMRDA",
+                "apply_traffic_congestion": True,
+                "enforce_government_guidelines": True
+            }
+        }
+    }
+
 class StopVisit(BaseModel):
     stop_id: str
     name: str
@@ -129,6 +182,10 @@ class OptimizeV2Response(BaseModel):
     departure_time: str = ""
     traffic_factor_applied: float
     regulatory_compliance_notes: list[str]
+    regulatory_data_status: str = Field(
+        default="simulated_regulatory_model",
+        description="Status of municipal regulatory data: verified or simulated_regulatory_model"
+    )
     solve_duration_ms: float
     is_real_road_data: bool = Field(default=False, description="True if computed using live OSRM road network, False if estimated via detour model")
     validation_errors: list[dict[str, Any]] = Field(default_factory=list)

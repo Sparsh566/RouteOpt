@@ -62,7 +62,7 @@ def test_solver_auto_derives_restricted_status_from_stop_coordinates():
     )
 
     matrix = [[0.0, 10.0, 10.0], [10.0, 0.0, 10.0], [10.0, 10.0, 0.0]]
-    solver = CVRPTWSolver(
+    _ = CVRPTWSolver(
         distance_matrix=matrix,
         duration_matrix=matrix,
         depot=depot,

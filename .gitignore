@@ -51,4 +51,6 @@ Research paper/
 
 # Local benchmark output artifacts
 results/
+*.db
+route_history.db
 
