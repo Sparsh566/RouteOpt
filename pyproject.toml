@@ -11,7 +11,7 @@ select = ["E", "F", "W", "I"]
 ignore = ["E501", "F401", "F841"]
 
 [tool.mypy]
-python_version = "3.11"
+python_version = "3.12"
 explicit_package_bases = true
 ignore_missing_imports = true
 check_untyped_defs = true

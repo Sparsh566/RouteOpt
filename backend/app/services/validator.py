@@ -69,21 +69,10 @@ class RouteValidator:
         self.shift_end_sec = departure_time_sec + depot.operating_hours_sec
 
         # Normalized time windows (in seconds since midnight)
-        self.normalized_windows: dict[str, tuple[int, int]] = {}
-        for s in stops:
-            if s.time_window_start_sec == 0:
-                w_start = departure_time_sec
-                if s.time_window_end_sec < depot.operating_hours_sec:
-                    w_end = departure_time_sec + s.time_window_end_sec
-                else:
-                    w_end = self.shift_end_sec
-            elif s.time_window_start_sec < 14400 and s.time_window_end_sec <= depot.operating_hours_sec:
-                w_start = departure_time_sec + s.time_window_start_sec
-                w_end = departure_time_sec + s.time_window_end_sec
-            else:
-                w_start = s.time_window_start_sec
-                w_end = s.time_window_end_sec
-            self.normalized_windows[s.stop_id] = (int(w_start), int(w_end))
+        self.normalized_windows: dict[str, tuple[int, int]] = {
+            s.stop_id: s.get_normalized_window(departure_time_sec, depot.operating_hours_sec)
+            for s in stops
+        }
 
     def validate(
         self,

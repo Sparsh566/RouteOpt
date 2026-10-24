@@ -81,24 +81,10 @@ class CVRPTWSolver:
         self.shift_end_sec = self.departure_time_sec + self.depot.operating_hours_sec
 
         # Normalized time windows for all stops in seconds since midnight
-        self.normalized_windows: list[tuple[int, int]] = []
-        for s in self.stops:
-            if s.time_window_start_sec == 0:
-                # Relative to shift departure (e.g. [0, 60] or default [0, 43200])
-                w_start = self.departure_time_sec
-                if s.time_window_end_sec < self.depot.operating_hours_sec:
-                    w_end = self.departure_time_sec + s.time_window_end_sec
-                else:
-                    w_end = self.shift_end_sec
-            elif s.time_window_start_sec < 14400 and s.time_window_end_sec <= self.depot.operating_hours_sec:
-                # Relative shift offset (e.g. 1h to 3h after departure)
-                w_start = self.departure_time_sec + s.time_window_start_sec
-                w_end = self.departure_time_sec + s.time_window_end_sec
-            else:
-                # Absolute seconds since midnight (e.g. 28800 to 41400 for 08:00 - 11:30 AM)
-                w_start = s.time_window_start_sec
-                w_end = s.time_window_end_sec
-            self.normalized_windows.append((int(w_start), int(w_end)))
+        self.normalized_windows: list[tuple[int, int]] = [
+            s.get_normalized_window(self.departure_time_sec, self.depot.operating_hours_sec)
+            for s in self.stops
+        ]
 
     def solve(self) -> dict[str, Any] | None:
         if not ORTOOLS_AVAILABLE:
