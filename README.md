@@ -5,7 +5,7 @@
 [![CI Workflow](https://github.com/Sparsh566/RouteOpt/actions/workflows/test.yml/badge.svg)](https://github.com/Sparsh566/RouteOpt/actions/workflows/test.yml)
 [![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
 [![Code Style: Ruff](https://img.shields.io/badge/code%20style-ruff-000000.svg)](https://github.com/astral-sh/ruff)
-[![Type Checked: mypy](https://img.shields.io/badge/type%20checked-mypy-blue.svg)](https://mypy-lang.org/)
+[![Type Checked: mypy (non-strict)](https://img.shields.io/badge/type%20checked-mypy%20(non--strict)-blue.svg)](https://mypy-lang.org/)
 
 ---
 
@@ -76,10 +76,10 @@ To evaluate our solver against global academic standards, RouteOpt was tested on
 *(You can re-run this yourself anytime with python benchmarks/solomon_validator.py)*
 
 ### 4. Test Suite Verification Proof
-- **35 automated test cases** across 10 test modules covering regression fixes, road regulations, route validation, and simulation edge cases.
-- **100% passing rate** on Python 3.11 and 3.12.
+- **67 automated test cases** across 15 test modules covering regression fixes, road regulations, route validation, and simulation edge cases.
+- **100% passing rate** on Python 3.11 and 3.12 (verified in CI).
 - **Ruff code formatting**: 0 lint errors.
-- **MyPy strict type-checking**: 0 type violations across all 26 backend source files.
+- **mypy (non-strict)**: 0 type violations across all 29 backend source files.
 
 ---
 
