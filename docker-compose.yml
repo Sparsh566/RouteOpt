@@ -1,0 +1,37 @@
+version: '3.8'
+
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    container_name: routeopt-backend
+    ports:
+      - "8000:8000"
+    environment:
+      - PYTHONPATH=/app
+      - OSRM_URL=http://osrm:5000
+      - ALLOWED_ORIGINS=http://localhost:3000,http://localhost:8000,http://127.0.0.1:3000,http://127.0.0.1:8000
+      - GROQ_API_KEY=${GROQ_API_KEY:-}
+      - ROUTEOPT_API_KEY=${ROUTEOPT_API_KEY:-}
+    volumes:
+      - ./backend:/app/backend
+      - ./frontend:/app/frontend
+      - routeopt_data:/app/data
+    restart: unless-stopped
+    depends_on:
+      - osrm
+
+  osrm:
+    image: osrm/osrm-backend:v5.27.1
+    container_name: routeopt-osrm
+    ports:
+      - "5000:5000"
+    volumes:
+      - osrm_data:/data
+    command: osrm-routed --algorithm mld /data/india-latest.osrm
+    restart: unless-stopped
+
+volumes:
+  routeopt_data:
+  osrm_data:

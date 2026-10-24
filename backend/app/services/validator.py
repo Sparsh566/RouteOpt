@@ -89,8 +89,6 @@ class RouteValidator:
         """
         errors: list[RouteValidationError] = []
         served_stop_counts: dict[str, int] = {s.stop_id: 0 for s in self.stops}
-        total_verified_distance = 0.0
-        total_verified_duration = 0.0
 
         for r in routes:
             v_id = str(r.get("vehicle_id") or "")

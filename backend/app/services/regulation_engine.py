@@ -6,6 +6,7 @@ Loads structured municipal regulations from backend/app/data/regulations.json (a
 import json
 import logging
 import os
+import threading
 from typing import Any
 
 from backend.app.models.fleet_v2 import CommercialVehicleSpec
@@ -32,20 +33,22 @@ def _is_point_in_polygon(lat: float, lon: float, polygon: list[list[float]]) -> 
 
 class RegionalRegulationEngine:
     _cached_data: dict[str, Any] | None = None
+    _lock = threading.Lock()
 
     @classmethod
     def _load_data(cls) -> dict[str, Any]:
-        if cls._cached_data is None:
-            if os.path.exists(DATA_FILE_PATH):
-                try:
-                    with open(DATA_FILE_PATH, "r", encoding="utf-8") as f:
-                        cls._cached_data = json.load(f)
-                except Exception as e:
-                    logger.error(f"Failed to load regulations.json: {e}")
+        with cls._lock:
+            if cls._cached_data is None:
+                if os.path.exists(DATA_FILE_PATH):
+                    try:
+                        with open(DATA_FILE_PATH, "r", encoding="utf-8") as f:
+                            cls._cached_data = json.load(f)
+                    except Exception as e:
+                        logger.error(f"Failed to load regulations.json: {e}")
+                        cls._cached_data = {}
+                else:
                     cls._cached_data = {}
-            else:
-                cls._cached_data = {}
-        return cls._cached_data
+            return cls._cached_data
 
     def __init__(self, region: str = "MUMBAI_MMRDA"):
         self.region = (region or "MUMBAI_MMRDA").upper()

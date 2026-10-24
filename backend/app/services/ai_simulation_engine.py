@@ -5,7 +5,9 @@ Strictly avoids emojis, em dashes, and AI buzzwords.
 Supports custom user situations and problems.
 """
 
+import asyncio
 import logging
+import math
 import re
 import time
 from typing import Any, Literal
@@ -87,7 +89,7 @@ STRICT NUMERICAL AND DECISION BOUNDARIES:
             departure_time_sec=departure_sec,
             region=region
         )
-        baseline_solution = baseline_solver.solve()
+        baseline_solution = await asyncio.to_thread(baseline_solver.solve)
 
         if baseline_solution and baseline_solution.get("routes"):
             baseline_cost = 0.0
@@ -204,7 +206,7 @@ STRICT NUMERICAL AND DECISION BOUNDARIES:
                     departure_time_sec=departure_sec,
                     region=region
                 )
-                disrupted_sol = solver.solve()
+                disrupted_sol = await asyncio.to_thread(solver.solve)
                 if disrupted_sol:
                     sim_cost, sim_duration = cls._calc_solution_metrics(disrupted_sol, disrupted_fleet)
                     unserved_stops_count = len(disrupted_sol.get("dropped_stops", []))
@@ -244,7 +246,7 @@ STRICT NUMERICAL AND DECISION BOUNDARIES:
                 departure_time_sec=departure_sec,
                 region=region
             )
-            disrupted_sol = solver.solve()
+            disrupted_sol = await asyncio.to_thread(solver.solve)
             if disrupted_sol:
                 sim_cost, sim_duration = cls._calc_solution_metrics(disrupted_sol, request.fleet)
                 unserved_stops_count = len(disrupted_sol.get("dropped_stops", []))
@@ -278,7 +280,7 @@ STRICT NUMERICAL AND DECISION BOUNDARIES:
                 departure_time_sec=departure_sec,
                 region=region
             )
-            disrupted_sol = solver.solve()
+            disrupted_sol = await asyncio.to_thread(solver.solve)
             if disrupted_sol:
                 sim_cost, sim_duration = cls._calc_solution_metrics(disrupted_sol, request.fleet)
                 unserved_stops_count = len(disrupted_sol.get("dropped_stops", []))
@@ -336,7 +338,7 @@ STRICT NUMERICAL AND DECISION BOUNDARIES:
                 departure_time_sec=departure_sec,
                 region=region
             )
-            disrupted_sol = solver.solve()
+            disrupted_sol = await asyncio.to_thread(solver.solve)
             title = "Urgent Delivery Added on Active Route"
             if disrupted_sol:
                 sim_cost, sim_duration = cls._calc_solution_metrics(disrupted_sol, request.fleet)
@@ -356,42 +358,167 @@ STRICT NUMERICAL AND DECISION BOUNDARIES:
 
         elif scenario == "BORDER_ENTRY_DELAY":
             delay_mins = params.get("delay_minutes", 60)
-            sim_cost = baseline_cost + (delay_mins * 12.0) + reg_engine.violation_fine_inr
-            sim_duration = baseline_duration + (delay_mins / 60.0) + 4.0
-            status = "VIOLATION_DETECTED"
-            title = "Highway Toll Delay Leading to Evening Peak No-Entry Breach"
-            action = "Park truck at Bhiwandi or Kalamboli transport hub until 9:30 PM, or transfer critical boxes into two Tata Ace vans."
+            delay_sec = delay_mins * 60.0
 
-            violations.append(RuleViolationDetail(
-                vehicle_id=params.get("vehicle_id", "TRUCK-01 (Tata 407)"),
-                rule_breached="Mumbai Traffic Police Notice: Heavy Goods Vehicle No-Entry Ban",
-                location="Thane - Mulund Checkpost",
-                scheduled_arrival="17:20 PM",
-                legal_hours_window="11:30 AM to 5:00 PM, or after 9:30 PM",
-                penalty_fine_inr=reg_engine.violation_fine_inr,
-                delay_minutes=delay_mins + 240.0
-            ))
+            # Dynamic checkpost identification based on region
+            if "PUNE" in region:
+                checkpost_name = "Khed-Shivapur Toll Plaza (NH-48)"
+                police_notice = "Pune Traffic Police Heavy Vehicle Window Regulation"
+            elif "NAGPUR" in region:
+                checkpost_name = "Borkhedi Toll Plaza (NH-44 Outer Ring Road)"
+                police_notice = "Nagpur Traffic Police Commercial No-Entry Guidelines"
+            else:
+                checkpost_name = "Thane - Mulund Checkpost (Eastern Express Highway)"
+                police_notice = "Mumbai Traffic Police Notice: Heavy Goods Vehicle No-Entry Ban"
+
+            title = f"Highway Toll Delay (+{delay_mins}m) at {checkpost_name}"
+
+            # Check if any vehicle in fleet is a heavy freight truck subject to municipal peak no-entry ban
+            truck_veh = next((v for v in request.fleet if v.vehicle_class == VehicleClass.FREIGHT_TRUCK), None)
+            if truck_veh is not None or params.get("vehicle_id"):
+                vid = params.get("vehicle_id") or (truck_veh.vehicle_id if truck_veh else "TRUCK-01")
+                sim_cost = baseline_cost + (delay_mins * 12.0) + reg_engine.violation_fine_inr
+                sim_duration = baseline_duration + (delay_mins / 60.0) + 4.0
+                status = "VIOLATION_DETECTED"
+                action = f"Toll delay at {checkpost_name} pushed heavy freight truck {vid} into peak-hour no-entry ban. Stage vehicle at transport hub or transfer urgent cargo to small delivery vans."
+                violations.append(RuleViolationDetail(
+                    vehicle_id=vid,
+                    rule_breached=police_notice,
+                    location=checkpost_name,
+                    scheduled_arrival="Restricted Peak Window",
+                    legal_hours_window="Outside Morning (08:00-11:30) and Evening (17:00-21:30) Bans",
+                    penalty_fine_inr=reg_engine.violation_fine_inr,
+                    delay_minutes=delay_mins + 240.0
+                ))
+            else:
+                # Delivery vans are exempt from peak no-entry bans; re-solve with delayed entry
+                pert_dur = [row[:] for row in base_dur_matrix]
+                for i in range(len(pert_dur)):
+                    pert_dur[0][i] += delay_sec
+
+                solver = CVRPTWSolver(
+                    distance_matrix=dist_matrix,
+                    duration_matrix=pert_dur,
+                    depot=request.depot,
+                    stops=request.stops,
+                    fleet=request.fleet,
+                    enforce_guidelines=True,
+                    departure_time_sec=departure_sec + int(delay_sec),
+                    region=region
+                )
+                disrupted_sol = await asyncio.to_thread(solver.solve)
+                if disrupted_sol:
+                    sim_cost, sim_duration = cls._calc_solution_metrics(disrupted_sol, request.fleet)
+                    unserved_stops_count = len(disrupted_sol.get("dropped_stops", []))
+                    status = "COMPLIANT" if unserved_stops_count == 0 else "VIOLATION_DETECTED"
+                    action = f"Rerouted schedule absorbed {delay_mins}m toll delay at {checkpost_name}. Delivery vans remain exempt from municipal peak bans."
+                else:
+                    sim_cost = baseline_cost + (delay_mins * 12.0)
+                    sim_duration = baseline_duration + (delay_mins / 60.0)
+                    status = "VIOLATION_DETECTED"
+                    action = f"Toll delay at {checkpost_name} exceeded vehicle shift time bounds."
 
         elif scenario == "FLEET_SWAP_TRUCK_TO_VANS":
-            sim_cost = baseline_cost + 720.0
-            sim_duration = baseline_duration - 1.6
-            status = "COMPLIANT"
-            title = "Fleet Change: Replacing 1 Big Truck with 3 Tata Ace Vans"
-            action = "Dispatch 3 Tata Ace vans. Driver and toll cost increases by Rs 720, but delivery finishes 1.6 hours faster without any police fine risk."
+            # Dynamically replace heavy freight trucks with agile delivery vans (e.g. Tata Ace)
+            swapped_fleet: list[CommercialVehicleSpec] = []
+            van_idx = 1
+            for veh in request.fleet:
+                if veh.vehicle_class == VehicleClass.FREIGHT_TRUCK:
+                    num_vans = max(2, math.ceil(veh.payload_capacity_kg / 800.0))
+                    for _ in range(num_vans):
+                        swapped_fleet.append(CommercialVehicleSpec(
+                            vehicle_id=f"VAN-SWAP-{van_idx}",
+                            name=f"Tata Ace Gold #{van_idx} (Converted)",
+                            vehicle_class=VehicleClass.DELIVERY_VAN,
+                            gross_vehicle_weight_tonnes=1.6,
+                            height_meters=1.85,
+                            payload_capacity_kg=800.0,
+                            fixed_dispatch_cost=300.0,
+                            running_cost_per_km=13.0,
+                            color_hex="#10b981"
+                        ))
+                        van_idx += 1
+                else:
+                    swapped_fleet.append(veh)
+
+            solver = CVRPTWSolver(
+                distance_matrix=dist_matrix,
+                duration_matrix=base_dur_matrix,
+                depot=request.depot,
+                stops=request.stops,
+                fleet=swapped_fleet,
+                enforce_guidelines=True,
+                departure_time_sec=departure_sec,
+                region=region
+            )
+            disrupted_sol = await asyncio.to_thread(solver.solve)
+            if disrupted_sol:
+                sim_cost, sim_duration = cls._calc_solution_metrics(disrupted_sol, swapped_fleet)
+                unserved_stops_count = len(disrupted_sol.get("dropped_stops", []))
+                status = "COMPLIANT"
+                title = f"Fleet Transition: Replaced Heavy Truck with {len(swapped_fleet)} Delivery Vans"
+                action = f"Dispatched {len(swapped_fleet)} Tata Ace vans. Vans operate exempt from peak-hour no-entry bans with zero police fine risk."
+            else:
+                sim_cost = baseline_cost + (len(swapped_fleet) * 300.0)
+                sim_duration = max(0.5, baseline_duration - 1.2)
+                status = "COMPLIANT"
+                title = f"Fleet Transition: Converted Fleet to {len(swapped_fleet)} Delivery Vans"
+                action = f"Converted fleet into {len(swapped_fleet)} small commercial delivery vans to bypass municipal no-entry bans."
 
         elif scenario == "FLYOVER_HEIGHT_CLOSURE":
-            sim_cost = baseline_cost + 480.0
-            sim_duration = baseline_duration + 1.2
-            status = "REROUTED_SUCCESSFULLY"
             title = "Flyover Closed: Height Barrier Detour"
-            action = "Direct heavy trucks to use surface roads via Eastern Freeway corridor; send small vans through regular city roads."
+            # Detour heavy vehicles around flyovers with 1.25x distance and 1.35x duration
+            detour_dist = [row[:] for row in dist_matrix]
+            detour_dur = [row[:] for row in base_dur_matrix]
+            for i in range(len(detour_dist)):
+                for j in range(len(detour_dist)):
+                    if i != j:
+                        detour_dist[i][j] *= 1.20
+                        detour_dur[i][j] *= 1.30
+
+            solver = CVRPTWSolver(
+                distance_matrix=detour_dist,
+                duration_matrix=detour_dur,
+                depot=request.depot,
+                stops=request.stops,
+                fleet=request.fleet,
+                enforce_guidelines=True,
+                departure_time_sec=departure_sec,
+                region=region
+            )
+            disrupted_sol = await asyncio.to_thread(solver.solve)
+            if disrupted_sol:
+                sim_cost, sim_duration = cls._calc_solution_metrics(disrupted_sol, request.fleet)
+                unserved_stops_count = len(disrupted_sol.get("dropped_stops", []))
+                status = "REROUTED_SUCCESSFULLY"
+                action = "Direct heavy trucks to use surface roads via arterial corridors; agile delivery vans navigate under low gantries without restriction."
+            else:
+                sim_cost = baseline_cost + 480.0
+                sim_duration = baseline_duration + 1.2
+                status = "REROUTED_SUCCESSFULLY"
+                action = "Surface road detours enforced due to height clearance gantry barrier closure."
 
         else:
-            sim_cost = baseline_cost + 350.0
-            sim_duration = baseline_duration + 0.9
-            status = "COMPLIANT"
-            title = "Custom Delivery Scenario on Active Route"
-            action = "Assign the new pickup stop to the nearest Tata Ace van that has remaining weight space."
+            solver = CVRPTWSolver(
+                distance_matrix=dist_matrix,
+                duration_matrix=base_dur_matrix,
+                depot=request.depot,
+                stops=request.stops,
+                fleet=request.fleet,
+                enforce_guidelines=True,
+                departure_time_sec=departure_sec,
+                region=region
+            )
+            disrupted_sol = await asyncio.to_thread(solver.solve)
+            if disrupted_sol:
+                sim_cost, sim_duration = cls._calc_solution_metrics(disrupted_sol, request.fleet)
+                status = "COMPLIANT"
+            else:
+                sim_cost = baseline_cost
+                sim_duration = baseline_duration
+                status = "INFEASIBLE"
+            title = "Scenario Simulation on Active Fleet"
+            action = "Evaluated fleet routing feasibility under regional operational constraints."
 
         cost_diff = sim_cost - baseline_cost
         dur_diff = sim_duration - baseline_duration

@@ -3,8 +3,6 @@ Tests for Issue #7 / #31:
 Explicit window_mode field on DeliveryStop to replace relative/absolute guessing heuristic.
 """
 
-import pytest
-
 from backend.app.models.fleet_v2 import (
     CommercialVehicleSpec,
     DeliveryStop,
